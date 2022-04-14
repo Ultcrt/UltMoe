@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+    <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'">
+    <link rel="stylesheet" type="text/css" href="../css/mainWindow.css">
+    <title>UltMoe</title>
+</head>
+<body>
+<div id="window">
+    <div id="menu">
+        <div id="subscriptionsItem" class="menuItem selected">
+            <button class="menuItemButton clickable">订阅</button>
+            <div class="menuItemIndicator clickable"></div>
+        </div>
+        <div id="settingsItem" class="menuItem unselected">
+            <button class="menuItemButton clickable">设置</button>
+            <div class="menuItemIndicator clickable"></div>
+        </div>
+    </div>
+    <div id="functionality">
+        <div id="windowControlBar">
+            <button id="minimizeButton" class="windowControlButton clickable">-</button>
+            <button id="closeButton" class="windowControlButton clickable">×</button>
+        </div>
+        <div id="detailPageArea">
+            <div id="subscriptionsPage" class="detailPage selected">
+                <div id="subscriptionsTableArea" class="banDrag">
+                    <div id="subscriptionsTable">
+                    </div>
+                </div>
+                <div id="subscriptionCreateArea">
+                    <label for="subscriptionInput">关键字：</label>
+                    <input id="subscriptionInput" type="text" placeholder="以空格分隔每个关键字" class="typeArea"/>
+                    <button id="subscriptionSubmitButton" class="clickable">+</button>
+                </div>
+            </div>
+            <div id="settingsPage" class="detailPage">
+                <div id="settingsArea">
+                    <div class="settingItem">
+                        <label for="runAtStartupCheckbox">开机启动</label>
+                        <input id="runAtStartupCheckbox" class="settingCheckbox clickable" type="checkbox"/>
+                    </div>
+                    <div class="settingItem">
+                        <label for="pollingIntervalNumber">查询间隔（小时）</label>
+                        <input id="pollingIntervalNumber" class="settingNumber typeArea" type="number" value="5"/>
+                    </div>
+                    <div class="settingItem">
+                        <label for="downloadPathButton">下载路径</label>
+                        <div id="directoryPicker">
+                            <label id="downloadPathLabel" for="downloadPathButton" >./Download</label>
+                            <button id="downloadPathButton" class="clickable">浏览</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+<script src="../js/mainWindow.js"></script>
+</html>

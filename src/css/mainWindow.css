@@ -1,0 +1,342 @@
+*{
+    user-select: none;
+}
+
+*::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: dimgrey;
+    border-radius: 10px;
+}
+
+*::-webkit-outer-spin-button, *::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+
+.banDrag {
+    -webkit-app-region: no-drag;
+}
+
+.clickable {
+    -webkit-app-region: no-drag;
+    cursor: pointer;
+}
+
+.typeArea {
+    -webkit-app-region: no-drag;
+    cursor: text;
+}
+
+#window {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    width: 1000px;
+    height: 600px;
+    text-align: center;
+    background-color: whitesmoke;
+    border-radius: 10px;
+    border: 1px grey solid;
+    -webkit-app-region: drag;
+}
+
+#menu {
+    width: 20%;
+    height: 100%;
+    background-color: lightgrey;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+}
+
+#functionality {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: space-between;
+    width: 80%;
+    height: 100%;
+}
+
+#windowControlBar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-around;
+    width: 10%;
+    height: 5%;
+}
+
+#detailPageArea {
+    width: 100%;
+    height: 90%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+#subscriptionsTableArea {
+    background-color: lightgrey;
+    width: 93%;
+    height: 92%;
+    border-radius: 10px;
+    display: block;
+    overflow-y: auto;
+}
+
+#subscriptionsTable {
+    width: 100%;
+    height: 100%;
+    display: table;
+    table-layout: fixed;
+}
+
+.subscriptionRow {
+    display: table-row;
+}
+
+.subscriptionCell {
+    display: table-cell;
+    vertical-align: middle;
+    border-top: 15px lightgrey solid;
+    border-bottom: 15px lightgrey solid;
+    border-right: 10px lightgrey solid;
+    border-left: 10px lightgrey solid;
+}
+
+.subscriptionCell.name,.subscriptionCell.updateTime {
+    width: 20%;
+}
+
+.subscriptionCell.operations {
+    width: 10%;
+}
+
+.updateTimeUrl {
+    color: indianred;
+}
+
+.updateTimeUrl:visited {
+    color: indianred;
+}
+
+.keywordList {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+}
+
+.keyword {
+    background-color: indianred;
+    color: whitesmoke;
+
+    height: 20px;
+    border-radius: 15px;
+    margin: 2px;
+    padding: 5px;
+
+    line-height: 20px;
+    text-align: center;
+
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#subscriptionCreateArea {
+    height: 10%;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+#subscriptionInput {
+    width: 70%;
+    height: 50%;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+    border: none;
+}
+
+#subscriptionInput:focus {
+    outline-color: indianred;
+}
+
+#subscriptionSubmitButton {
+    width: 5%;
+    height: 50%;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    background-color: grey;
+    color: whitesmoke;
+    border: none;
+}
+
+#subscriptionSubmitButton:active {
+    background-color: indianred;
+    color: whitesmoke;
+}
+
+.subscriptionDeleteButton {
+    border: none;
+    background-color: transparent;
+    font-size: 30px;
+    color: red;
+    border-radius: 10px;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+}
+
+.subscriptionDeleteButton:active {
+    color: indianred;
+}
+
+#settingsArea {
+    width: 70%;
+    height: 92%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+#directoryPicker {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    width: 70%;
+}
+
+#downloadPathLabel {
+    width: 90%;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    text-align: right;
+    background-color: white;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+#downloadPathButton {
+    width: 10%;
+    height: 100%;
+    border: none;
+    color: whitesmoke;
+    background-color: grey;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+#downloadPathButton:active {
+    background-color: indianred;
+}
+
+.settingItem {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.settingCheckbox {
+    accent-color: indianred;
+}
+
+.settingNumber {
+    height: 20px;
+    width: 40px;
+    border: none;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.settingNumber:focus {
+    outline-color: indianred;
+}
+
+.windowControlButton {
+    font-size: 25px;
+    color: grey;
+    border: none;
+    background-color: transparent;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+}
+
+.windowControlButton:active {
+    color: indianred;
+}
+
+.menuItem {
+    height: 12%;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.menuItemButton {
+    width: 95%;
+    height: 75%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+    border: none;
+    background-color: transparent;
+}
+
+.menuItemIndicator {
+    background-color: grey;
+    width: 3%;
+    height: 75%;
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.menuItem.selected>.menuItemIndicator {
+    background-color: indianred;
+}
+
+.menuItem.selected>.menuItemButton {
+    background-color: whitesmoke;
+}
+
+.detailPage {
+    height: 100%;
+    width: 100%;
+    display: none;
+}
+
+.detailPage.selected {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+}

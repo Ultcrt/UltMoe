@@ -1,0 +1,17 @@
+{
+  "name": "ultmoe",
+  "version": "1.0.0",
+  "description": "A bangumi subscriber and downloader.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "author": "Ultcrt",
+  "license": "MIT",
+  "devDependencies": {
+    "axios": "^0.26.1",
+    "cheerio": "^1.0.0-rc.10",
+    "electron": "^18.0.3",
+    "webtorrent": "^1.8.13"
+  }
+}
