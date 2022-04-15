@@ -5,6 +5,7 @@ const path = require('path')
 const WebTorrent = require("webtorrent");
 const fs = require('fs');
 const https = require("https");
+const schedule = require("node-schedule");
 
 const updateStatus = {
     "SUCCESS": 0,
@@ -14,6 +15,8 @@ const updateStatus = {
 
 const downloader = new WebTorrent()
 const torrentMap = {}
+
+let job = schedule.scheduleJob('0 0 1 1 *', function(){});
 
 app.enableSandbox()
 
@@ -84,8 +87,8 @@ function createMainWindow() {
         mainWindow.hide()
     })
 
-    ipcMain.on("mainWindow:openUrlWithExternal", (event, url)=>{
-        shell.openExternal(url)
+    ipcMain.on("mainWindow:openUrlWithExternal", (event, pageUrl)=>{
+        shell.openExternal(pageUrl)
     })
 
     ipcMain.handle("mainWindow:openDirectoryPicker", ()=>{
@@ -119,9 +122,9 @@ function createMainWindow() {
                             if (response.status === 200) {
                                 const $ = cheerio.load(response.data)
                                 const targetTorrentUrl = "https:" + $("#tabs-1").find("a:first").attr("href")
-                                const completeTargetUrl = baseUrl + targetUrl
+                                const targetPageUrl = baseUrl + targetUrl
                                 resolve({
-                                    "url": completeTargetUrl,
+                                    "pageUrl": targetPageUrl,
                                     "torrentUrl": targetTorrentUrl,
                                     "status": updateStatus.SUCCESS
                                 })
@@ -171,7 +174,28 @@ function createMainWindow() {
         })
     })
 
-    ipcMain.on("mainWindow:deleteTorrent", (event, id)=>{
-        torrentMap[id].destroy()
+    ipcMain.on("mainWindow:deleteTorrent", (event, id, cleanDelete)=>{
+        torrentMap[id].destroy({destroyStore: cleanDelete})
+    })
+
+    ipcMain.on("mainWindow:setRunAtStartup", (event, flag) => {
+        if (app.isPackaged) {
+            app.setLoginItemSettings({
+                openAtLogin: flag,
+                openAsHidden: true
+            })
+        }
+    })
+
+    ipcMain.on("mainWindow:setClearTodayTime", (event, clearTodayTime, downloadPath) => {
+        const [hour, minute] = clearTodayTime.split(":")
+
+        job.cancel()
+        job = schedule.scheduleJob(`${minute} ${hour} * * *`, function () {
+
+            console.log("Clear today schedule triggered")
+
+            fs.rmSync(path.join(downloadPath, "今日更新"), { recursive: true, force: true });
+        })
     })
 }

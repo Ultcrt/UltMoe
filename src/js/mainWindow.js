@@ -13,16 +13,18 @@ const runAtStartupCheckbox = document.querySelector("#runAtStartupCheckbox")
 const pollingIntervalNumber = document.querySelector("#pollingIntervalNumber")
 const downloadPathButton = document.querySelector("#downloadPathButton")
 const downloadPathLabel = document.querySelector("#downloadPathLabel")
+const cleanDeleteCheckbox = document.querySelector("#cleanDeleteCheckbox")
+const clearTodayTime = document.querySelector("#clearTodayTime")
 
 const subscriptionDeleteButtons = document.getElementsByClassName("subscriptionDeleteButton")
 const downloadedTimeUrl = document.getElementsByClassName("downloadedTimeUrl")
 
-localStorage.clear()
-
 let subscriptionRecords = {}
 let settingRecords = {
     "runAtStartup": false,
+    "cleanDelete": false,
     "pollingInterval": 5,
+    "clearTodayTime": "00:00",
     "downloadPath": "./Download"
 }
 
@@ -31,7 +33,7 @@ if (localStorage.getItem("subscriptions")) {
 
     for(const key in subscriptionRecords) {
         appendSubscription(key, subscriptionRecords[key]["name"], subscriptionRecords[key]["keywords"],
-            subscriptionRecords[key]["downloadedTime"], subscriptionRecords[key]["url"],
+            subscriptionRecords[key]["downloadedTime"], subscriptionRecords[key]["pageUrl"],
             subscriptionRecords[key]["downloaded"])
     }
 }
@@ -40,11 +42,16 @@ if (localStorage.getItem("settings")) {
     settingRecords = JSON.parse(localStorage.getItem("settings"))
 
     runAtStartupCheckbox.checked = settingRecords["runAtStartup"]
+    cleanDeleteCheckbox.checked = settingRecords["cleanDelete"]
     pollingIntervalNumber.value = settingRecords["pollingInterval"]
+    clearTodayTime.value = settingRecords["clearTodayTime"]
     downloadPathLabel.textContent = settingRecords["downloadPath"]
 }
 
 updateSchedule()
+
+window.electronAPI.setRunAtStartup(runAtStartupCheckbox.checked)
+window.electronAPI.setClearTodayTime(clearTodayTime.value, downloadPathLabel.textContent)
 let updateIntervalId = setInterval(updateSchedule, hourToMs(pollingIntervalNumber.value))
 
 initSubscriptionCallback()
@@ -70,19 +77,19 @@ settingsItem.addEventListener("click", ()=>{
 subscriptionSubmitButton.addEventListener("click", async ()=>{
     if (subscriptionInput.value.trim() !== "") {
         const keywords = subscriptionInput.value.split(" ")
-        const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(keywords)
+        const {pageUrl, torrentUrl, status} = await window.electronAPI.updateWithKeywords(keywords)
         const key = Date.now().toString()
         const nullDatetime = "----/--/-- --:--:--"
         let name = keywords[0];
 
         if (handleUpdateStatus(status, name)) {
-            appendSubscription(key, undefined, keywords, nullDatetime, url, false)
+            appendSubscription(key, undefined, keywords, nullDatetime, pageUrl, false)
 
             subscriptionRecords[key] = {
                 "name": name,
                 "keywords": keywords,
                 "downloadedTime": nullDatetime,
-                "url": url,
+                "pageUrl": pageUrl,
                 "torrentUrl": torrentUrl,
                 "downloaded": false
             }
@@ -97,9 +104,21 @@ subscriptionSubmitButton.addEventListener("click", async ()=>{
 })
 
 runAtStartupCheckbox.addEventListener("click", ()=>{
+    window.electronAPI.setRunAtStartup(runAtStartupCheckbox.checked)
 
     settingRecords["runAtStartup"] = runAtStartupCheckbox.checked
+    localStorage.setItem("settings", JSON.stringify(settingRecords))
+})
 
+cleanDeleteCheckbox.addEventListener("click", ()=>{
+    settingRecords["cleanDelete"] = cleanDeleteCheckbox.checked
+    localStorage.setItem("settings", JSON.stringify(settingRecords))
+})
+
+clearTodayTime.addEventListener("change", ()=>{
+    window.electronAPI.setClearTodayTime(clearTodayTime.value, downloadPathLabel.textContent)
+
+    settingRecords["clearTodayTime"] = clearTodayTime.value
     localStorage.setItem("settings", JSON.stringify(settingRecords))
 })
 
@@ -116,7 +135,6 @@ pollingIntervalNumber.addEventListener("change", ()=>{
     updateIntervalId = setInterval(updateSchedule, hourToMs(pollingIntervalNumber.value))
 
     settingRecords["pollingInterval"] = pollingIntervalNumber.value
-
     localStorage.setItem("settings", JSON.stringify(settingRecords))
 })
 
@@ -124,7 +142,6 @@ downloadPathButton.addEventListener("click", async ()=>{
     downloadPathLabel.textContent = await window.electronAPI.openDirectoryPicker()
 
     settingRecords["downloadPath"] = downloadPathLabel.textContent
-
     localStorage.setItem("settings", JSON.stringify(settingRecords))
 })
 
@@ -142,6 +159,11 @@ window.electronAPI.onDownloadDone((event, id)=>{
     subscriptionRecords[id]["downloadedTime"] = targetDownloadedTimeUrl.textContent
 
     localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
+
+    new Notification(
+        `订阅"${subscriptionRecords[id]["name"]}"已完成下载`,
+        { body: `详情：${subscriptionRecords[id]["pageUrl"]}` }
+    )
 })
 
 window.electronAPI.onDownloadProgressUpdate((event, id, value)=>{
@@ -165,7 +187,7 @@ function initSubscriptionCallback() {
 
             elem.parentElement.parentElement.parentElement.remove()
 
-            window.electronAPI.deleteTorrent(subscriptionId)
+            window.electronAPI.deleteTorrent(subscriptionId, cleanDeleteCheckbox.checked)
 
             delete subscriptionRecords[subscriptionId]
 
@@ -174,9 +196,9 @@ function initSubscriptionCallback() {
     }
     for (const elem of downloadedTimeUrl) {
         elem.addEventListener("click", (event)=>{
-            const url = elem.getAttribute("href")
+            const pageUrl = elem.getAttribute("href")
             event.preventDefault()
-            window.electronAPI.openUrlWithExternal(url)
+            window.electronAPI.openUrlWithExternal(pageUrl)
         })
     }
 }
@@ -225,6 +247,7 @@ function appendSubscription(id, name, keywords, downloadedTime, url, downloaded)
 }
 
 async function updateSchedule() {
+    console.log("Hourly update")
     for (const key in subscriptionRecords) {
         const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(subscriptionRecords[key]["keywords"])
 

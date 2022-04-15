@@ -312,6 +312,23 @@ progress.done::-webkit-progress-value {
     outline-color: indianred;
 }
 
+#clearTodayTime {
+    border-radius: 10px;
+    height: 20px;
+    width: 50px;
+    border: none;
+    font-family: ui-rounded;
+    text-align: center;
+}
+
+#clearTodayTime::-webkit-calendar-picker-indicator {
+    display: none;
+}
+
+#clearTodayTime:focus {
+    outline-color: indianred;
+}
+
 .windowControlButton {
     font-size: 25px;
     color: grey;
