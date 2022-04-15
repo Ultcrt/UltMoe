@@ -99,6 +99,8 @@ subscriptionSubmitButton.addEventListener("click", async ()=>{
             initSubscriptionCallback()
 
             window.electronAPI.download(torrentUrl, downloadPathLabel.textContent, name, key)
+
+            subscriptionInput.value = ""
         }
     }
 })

@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Tray, Menu, ipcMain, shell, dialog} = require('electron')
+const { app, BrowserWindow, Tray, Menu, ipcMain, shell, dialog, Notification } = require('electron')
 const axios = require('axios')
 const cheerio = require('cheerio')
 const path = require('path')
@@ -44,7 +44,6 @@ function createMainWindow() {
         resizable: false,
 
         transparent: true,
-        backgroundColor: '#00000000',
 
         icon: "assets/UltMoe.ico",
 
@@ -167,11 +166,39 @@ function createMainWindow() {
     })
 
     ipcMain.on("mainWindow:openWarningDialog", (event, textContent)=>{
-        dialog.showMessageBoxSync(mainWindow, {
-            type: "warning",
-            title: "UltMoe",
-            message: textContent
-        })
+        if (mainWindow.isVisible()) {
+            const styledDialog = new BrowserWindow({
+                parent: mainWindow,
+                modal: true,
+
+                width: 450,
+                height: 250,
+
+                frame: false,
+                resizable: false,
+
+                transparent: true,
+
+                icon: "assets/UltMoe.ico",
+
+                webPreferences: {
+                    preload: path.join(__dirname, 'src/js/preload.js')
+                }
+            })
+
+            styledDialog.removeMenu()
+
+            styledDialog.loadFile('src/html/styledDialog.html')
+
+            ipcMain.on("styledDialog:closeDialog", ()=>{
+                styledDialog.destroy()
+            })
+
+            styledDialog.webContents.once("dom-ready", ()=>styledDialog.webContents.send("styledDialog:onInitTextContent", "UltMoe", textContent))
+        }
+        else {
+            new Notification({ title: "UltMoe", body: textContent }).show()
+        }
     })
 
     ipcMain.on("mainWindow:deleteTorrent", (event, id, cleanDelete)=>{

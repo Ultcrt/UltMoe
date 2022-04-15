@@ -12,5 +12,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     openWarningDialog: (textContent) => ipcRenderer.send("mainWindow:openWarningDialog", textContent),
     deleteTorrent: (id, cleanDelete) => ipcRenderer.send("mainWindow:deleteTorrent", id, cleanDelete),
     setRunAtStartup: (flag) => ipcRenderer.send("mainWindow:setRunAtStartup", flag),
-    setClearTodayTime: (clearTodayTime, downloadPath) => ipcRenderer.send("mainWindow:setClearTodayTime", clearTodayTime, downloadPath)
+    setClearTodayTime: (clearTodayTime, downloadPath) => ipcRenderer.send("mainWindow:setClearTodayTime", clearTodayTime, downloadPath),
+    closeDialog: () => ipcRenderer.send("styledDialog:closeDialog"),
+    onInitTextContent: (callback)=> ipcRenderer.on("styledDialog:onInitTextContent", callback)
 })
