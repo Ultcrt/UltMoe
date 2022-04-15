@@ -15,7 +15,9 @@ const downloadPathButton = document.querySelector("#downloadPathButton")
 const downloadPathLabel = document.querySelector("#downloadPathLabel")
 
 const subscriptionDeleteButtons = document.getElementsByClassName("subscriptionDeleteButton")
-const updateTimeUrl = document.getElementsByClassName("updateTimeUrl")
+const downloadedTimeUrl = document.getElementsByClassName("downloadedTimeUrl")
+
+localStorage.clear()
 
 let subscriptionRecords = {}
 let settingRecords = {
@@ -28,8 +30,9 @@ if (localStorage.getItem("subscriptions")) {
     subscriptionRecords = JSON.parse(localStorage.getItem("subscriptions"))
 
     for(const key in subscriptionRecords) {
-        appendSubscription(subscriptionRecords[key]["name"], subscriptionRecords[key]["keywords"],
-            subscriptionRecords[key]["updateTime"], subscriptionRecords[key]["url"], key)
+        appendSubscription(key, subscriptionRecords[key]["name"], subscriptionRecords[key]["keywords"],
+            subscriptionRecords[key]["downloadedTime"], subscriptionRecords[key]["url"],
+            subscriptionRecords[key]["downloaded"])
     }
 }
 
@@ -42,7 +45,7 @@ if (localStorage.getItem("settings")) {
 }
 
 updateSchedule()
-let updateTimeId = setInterval(updateSchedule, hourToMs(pollingIntervalNumber.value))
+let updateIntervalId = setInterval(updateSchedule, hourToMs(pollingIntervalNumber.value))
 
 initSubscriptionCallback()
 
@@ -67,30 +70,29 @@ settingsItem.addEventListener("click", ()=>{
 subscriptionSubmitButton.addEventListener("click", async ()=>{
     if (subscriptionInput.value.trim() !== "") {
         const keywords = subscriptionInput.value.split(" ")
-
+        const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(keywords)
+        const key = Date.now().toString()
+        const nullDatetime = "----/--/-- --:--:--"
         let name = keywords[0];
 
-        const {url, torrent} = await window.electronAPI.updateWithKeywords(keywords)
+        if (handleUpdateStatus(status, name)) {
+            appendSubscription(key, undefined, keywords, nullDatetime, url, false)
 
-        window.electronAPI.download(torrent, downloadPathLabel.textContent, name)
+            subscriptionRecords[key] = {
+                "name": name,
+                "keywords": keywords,
+                "downloadedTime": nullDatetime,
+                "url": url,
+                "torrentUrl": torrentUrl,
+                "downloaded": false
+            }
 
-        const currentTimestamp = Date.now()
+            localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
 
-        const currentDatetime = new Date(currentTimestamp).toLocaleString()
+            initSubscriptionCallback()
 
-        appendSubscription(name, keywords, currentDatetime, url, currentTimestamp)
-
-        subscriptionRecords[currentTimestamp.toString()] = {
-            "name": name,
-            "keywords": keywords,
-            "updateTime": currentDatetime,
-            "url": url,
-            "torrent": torrent
+            window.electronAPI.download(torrentUrl, downloadPathLabel.textContent, name, key)
         }
-
-        localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
-
-        initSubscriptionCallback()
     }
 })
 
@@ -109,9 +111,9 @@ pollingIntervalNumber.addEventListener("change", ()=>{
         pollingIntervalNumber.value = 24
     }
 
-    clearInterval(updateTimeId)
+    clearInterval(updateIntervalId)
 
-    updateTimeId = setInterval(updateSchedule, hourToMs(pollingIntervalNumber.value))
+    updateIntervalId = setInterval(updateSchedule, hourToMs(pollingIntervalNumber.value))
 
     settingRecords["pollingInterval"] = pollingIntervalNumber.value
 
@@ -126,6 +128,29 @@ downloadPathButton.addEventListener("click", async ()=>{
     localStorage.setItem("settings", JSON.stringify(settingRecords))
 })
 
+window.electronAPI.onDownloadDone((event, id)=>{
+    const targetRow = document.getElementById(id)
+    const targetProgress = targetRow.querySelector("progress")
+    const targetDownloadedTimeUrl = targetRow.querySelector(".downloadedTimeUrl")
+
+    targetProgress.classList.add("done")
+    targetProgress.value = 100
+    targetDownloadedTimeUrl.textContent = new Date().toLocaleString()
+
+    subscriptionRecords[id]["downloaded"] = true
+
+    subscriptionRecords[id]["downloadedTime"] = targetDownloadedTimeUrl.textContent
+
+    localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
+})
+
+window.electronAPI.onDownloadProgressUpdate((event, id, value)=>{
+    const targetRow = document.getElementById(id)
+    const targetProgress = targetRow.querySelector("progress")
+
+    targetProgress.value = value
+})
+
 function selectHandler(elementsList, selectedElement) {
     elementsList.forEach((elem)=> {
         elem.classList.remove("selected")
@@ -138,14 +163,16 @@ function initSubscriptionCallback() {
         elem.addEventListener("click", ()=>{
             const subscriptionId = elem.parentElement.parentElement.parentElement.getAttribute("id")
 
+            elem.parentElement.parentElement.parentElement.remove()
+
+            window.electronAPI.deleteTorrent(subscriptionId)
+
             delete subscriptionRecords[subscriptionId]
 
             localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
-
-            elem.parentElement.parentElement.parentElement.remove()
         })
     }
-    for (const elem of updateTimeUrl) {
+    for (const elem of downloadedTimeUrl) {
         elem.addEventListener("click", (event)=>{
             const url = elem.getAttribute("href")
             event.preventDefault()
@@ -154,13 +181,23 @@ function initSubscriptionCallback() {
     }
 }
 
-function appendSubscription(name, keywords, updateTime, url, id) {
+function appendSubscription(id, name, keywords, downloadedTime, url, downloaded) {
+    let nonemptyKeywords = []
     let keywordListHtml = "";
+
     for(const keyword of keywords) {
-        if (keyword) {
+        if (keyword !== '' && keyword !== undefined && keyword !== null) {
             keywordListHtml += `<div class="keyword">${keyword}</div>`
+            nonemptyKeywords.push(keyword)
         }
     }
+
+    if(name === undefined) {
+        name = nonemptyKeywords[0]
+    }
+
+    const downloadedHtml = downloaded ? "done" : ""
+    const startValue = downloaded ? 100 : 0
 
     subscriptionsTable.innerHTML +=
         `
@@ -171,8 +208,12 @@ function appendSubscription(name, keywords, updateTime, url, id) {
                         ${keywordListHtml}
                     </div>
                 </div>
-                <div class="subscriptionCell updateTime">
-                    <a href="${url}" class="updateTimeUrl clickable">${updateTime}</a>
+                <div class="subscriptionCell progress">
+                    <progress class="subscriptionProgressbar ${downloadedHtml}" value=${startValue} max="100">                
+                    </progress>
+                </div>
+                <div class="subscriptionCell downloadedTime">
+                    <a href="${url}" class="downloadedTimeUrl clickable">${downloadedTime}</a>
                 </div>
                 <div class="subscriptionCell operations">
                     <div class="subscriptionOperations">
@@ -185,14 +226,32 @@ function appendSubscription(name, keywords, updateTime, url, id) {
 
 async function updateSchedule() {
     for (const key in subscriptionRecords) {
-        const {url, torrent} = await window.electronAPI.updateWithKeywords(subscriptionRecords[key]["keywords"])
+        const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(subscriptionRecords[key]["keywords"])
 
-        window.electronAPI.download(torrent, downloadPathLabel.textContent, subscriptionRecords[key]["name"])
+        if (handleUpdateStatus(status, subscriptionRecords[key]["name"])) {
+            if ((!subscriptionRecords[key]["downloaded"]) || torrentUrl !== subscriptionRecords[key]["torrentUrl"]) {
+                window.electronAPI.download(torrentUrl, downloadPathLabel.textContent,
+                    subscriptionRecords[key]["name"], key)
 
-        subscriptionRecords[key]["url"] = url
-        subscriptionRecords[key]["torrent"] = torrent
+                subscriptionRecords[key]["url"] = url
+                subscriptionRecords[key]["torrentUrl"] = torrentUrl
 
-        localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
+                localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
+            }
+        }
+    }
+}
+
+function handleUpdateStatus(status, name) {
+    switch (status) {
+        case 0:
+            return true
+        case 1:
+            window.electronAPI.openWarningDialog(`订阅"${name}"的搜索结果为空`)
+            return false
+        case 2:
+            window.electronAPI.openWarningDialog(`订阅"${name}"更新时发生网络错误`)
+            return false
     }
 }
 

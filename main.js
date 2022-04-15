@@ -4,6 +4,33 @@ const cheerio = require('cheerio')
 const path = require('path')
 const WebTorrent = require("webtorrent");
 const fs = require('fs');
+const https = require("https");
+
+const updateStatus = {
+    "SUCCESS": 0,
+    "NOT_FOUND": 1,
+    "NETWORK_ERROR": 2
+}
+
+const downloader = new WebTorrent()
+const torrentMap = {}
+
+app.enableSandbox()
+
+app.whenReady().then(()=> {
+    createMainWindow()
+})
+
+function mkdirRecursively(path) {
+    if (!fs.existsSync(path)){
+        fs.mkdirSync(path, { recursive: true });
+    }
+}
+
+function quitApp() {
+    app.quit()
+    downloader.destroy(null)
+}
 
 function createMainWindow() {
     const mainWindow = new BrowserWindow({
@@ -43,16 +70,14 @@ function createMainWindow() {
         const menuConfig = Menu.buildFromTemplate([
             {
                 label: '退出',
-                click: () => app.quit()
+                click: () => quitApp()
             }
         ])
         tray.popUpContextMenu(menuConfig)
     })
 
-    const downloader = new WebTorrent()
-
     ipcMain.on("mainWindow:close", ()=>{
-        app.quit()
+        quitApp()
     })
 
     ipcMain.on("mainWindow:minimize", ()=>{
@@ -74,53 +99,79 @@ function createMainWindow() {
             baseURL: baseUrl,
             headers: {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39"
-            }
+            },
+            httpsAgent: new https.Agent({ keepAlive: true }),
         }
 
         for (const keyword of keywords) {
             searchUrl += keyword + '+'
         }
 
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             axios.get(encodeURI(searchUrl), config).then((response) => {
                 if (response.status === 200) {
                     const $ = cheerio.load(response.data)
                     const targetUrl = $("#topic_list").find("tbody:first").find("tr:first")
                         .find(".title").find("a[target='_blank']").attr("href")
 
-                    axios.get(targetUrl, config).then((response) => {
-                        if (response.status === 200) {
-                            const $ = cheerio.load(response.data)
-                            const targetTorrent = "https:" + $("#tabs-1").find("a:first").attr("href")
-                            const completeTargetUrl = baseUrl + targetUrl
-                            resolve({"url": completeTargetUrl, "torrent": targetTorrent})
-                        }
-                    })
+                    if (targetUrl) {
+                        axios.get(encodeURI(targetUrl), config).then((response) => {
+                            if (response.status === 200) {
+                                const $ = cheerio.load(response.data)
+                                const targetTorrentUrl = "https:" + $("#tabs-1").find("a:first").attr("href")
+                                const completeTargetUrl = baseUrl + targetUrl
+                                resolve({
+                                    "url": completeTargetUrl,
+                                    "torrentUrl": targetTorrentUrl,
+                                    "status": updateStatus.SUCCESS
+                                })
+                            }
+                        }).catch(()=>resolve({"status": updateStatus.NETWORK_ERROR}))
+                    }
+                    else {
+                        resolve({"status": updateStatus.NOT_FOUND})
+                    }
                 }
-            })
+            }).catch(()=>resolve({"status": updateStatus.NETWORK_ERROR}))
         })
     })
 
-    ipcMain.on("mainWindow:download", (event, torrent, path, name)=>{
-        const todayPath = path.join(path, "今日更新")
-        const subscriptionPath = path.join(path, name)
+    ipcMain.on("mainWindow:download", (event, torrentUrl, downloadPath, name, id)=>{
+        const todayPath = path.join(downloadPath, "今日更新", name)
+        const subscriptionPath = path.join(downloadPath, name)
 
-        if (!fs.existsSync(path)){
-            fs.mkdirSync(path, { recursive: true });
-        }
-        downloader.add(torrent, {
-            "path": path,
+        mkdirRecursively(todayPath)
+        mkdirRecursively(subscriptionPath)
+
+        torrentMap[id] = downloader.add(torrentUrl, {
+            "path": subscriptionPath,
             "announce": "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt"
         }, function (torrent) {
-            torrent.on('done', function () {
-                torrent.files
+            torrent.on("done", function () {
+                for (const file of torrent.files) {
+                    const dstPathWithName = path.join(todayPath, file.name)
+                    fs.copyFile(file.path, dstPathWithName, () => {
+                    })
+                    mainWindow.webContents.send("mainWindow:onDownloadDone", id)
+                }
+            })
+
+            torrent.on("download", function () {
+                const value = torrent.progress * 100.0
+                mainWindow.webContents.send("mainWindow:onDownloadProgressUpdate", id, value)
             })
         })
     })
+
+    ipcMain.on("mainWindow:openWarningDialog", (event, textContent)=>{
+        dialog.showMessageBoxSync(mainWindow, {
+            type: "warning",
+            title: "UltMoe",
+            message: textContent
+        })
+    })
+
+    ipcMain.on("mainWindow:deleteTorrent", (event, id)=>{
+        torrentMap[id].destroy()
+    })
 }
-
-app.enableSandbox()
-
-app.whenReady().then(()=> {
-    createMainWindow()
-})
