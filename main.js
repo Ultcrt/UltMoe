@@ -31,8 +31,8 @@ function mkdirRecursively(path) {
 }
 
 function quitApp() {
-    app.quit()
     downloader.destroy(null)
+    app.quit()
 }
 
 function createMainWindow() {
@@ -40,12 +40,14 @@ function createMainWindow() {
         width: 1050,
         height: 650,
 
+        show: false,
+
         frame: false,
         resizable: false,
 
         transparent: true,
 
-        icon: "assets/UltMoe.ico",
+        icon: path.join(__dirname, "assets/UltMoe.ico"),
 
         webPreferences: {
             preload: path.join(__dirname, 'src/js/preload.js')
@@ -54,9 +56,9 @@ function createMainWindow() {
 
     mainWindow.removeMenu()
 
-    mainWindow.loadFile('src/html/mainWindow.html')
+    mainWindow.loadFile(path.join(__dirname, 'src/html/mainWindow.html'))
 
-    const tray = new Tray("assets/UltMoe.ico")
+    const tray = new Tray(path.join(__dirname, "assets/UltMoe.ico"))
 
     tray.setToolTip('UltMoe')
 
@@ -179,7 +181,7 @@ function createMainWindow() {
 
                 transparent: true,
 
-                icon: "assets/UltMoe.ico",
+                icon: path.join(__dirname, "assets/UltMoe.ico"),
 
                 webPreferences: {
                     preload: path.join(__dirname, 'src/js/preload.js')
@@ -188,7 +190,7 @@ function createMainWindow() {
 
             styledDialog.removeMenu()
 
-            styledDialog.loadFile('src/html/styledDialog.html')
+            styledDialog.loadFile(path.join(__dirname, 'src/html/styledDialog.html'))
 
             ipcMain.on("styledDialog:closeDialog", ()=>{
                 styledDialog.destroy()
