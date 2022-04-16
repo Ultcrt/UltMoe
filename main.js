@@ -47,7 +47,7 @@ function createMainWindow() {
 
         transparent: true,
 
-        icon: path.join(__dirname, "assets/UltMoe.ico"),
+        icon: path.join(__dirname, "assets/UltMoe.png"),
 
         webPreferences: {
             preload: path.join(__dirname, 'src/js/preload.js')
@@ -58,7 +58,7 @@ function createMainWindow() {
 
     mainWindow.loadFile(path.join(__dirname, 'src/html/mainWindow.html'))
 
-    const tray = new Tray(path.join(__dirname, "assets/UltMoe.ico"))
+    const tray = new Tray(path.join(__dirname, "assets/UltMoe.png"))
 
     tray.setToolTip('UltMoe')
 
@@ -181,7 +181,7 @@ function createMainWindow() {
 
                 transparent: true,
 
-                icon: path.join(__dirname, "assets/UltMoe.ico"),
+                icon: path.join(__dirname, "assets/UltMoe.png"),
 
                 webPreferences: {
                     preload: path.join(__dirname, 'src/js/preload.js')

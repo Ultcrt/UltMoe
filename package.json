@@ -39,8 +39,8 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "name": "UltMoe",
-        "icon": "./assets/UltMoe.ico"
+        "name": "ultmoe",
+        "icon": "./assets/UltMoe.png"
       },
       "makers": [
         {
