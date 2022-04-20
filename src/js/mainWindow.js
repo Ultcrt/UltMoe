@@ -260,6 +260,7 @@ async function updateSchedule() {
 
                 subscriptionRecords[key]["url"] = url
                 subscriptionRecords[key]["torrentUrl"] = torrentUrl
+                subscriptionRecords[key]["downloaded"] = false
 
                 localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
             }
