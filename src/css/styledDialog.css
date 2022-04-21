@@ -2,6 +2,19 @@
     user-select: none;
 }
 
+*::-webkit-scrollbar-track {
+    background-color: transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: dimgrey;
+    border-radius: 10px;
+}
+
 .banDrag {
     -webkit-app-region: no-drag;
 }
@@ -84,10 +97,12 @@
 
 #messageBox {
     width: 70%;
+    height: 80%;
     text-align: left;
     word-wrap: break-word;
     overflow: hidden;
     text-overflow: ellipsis;
     margin-right: 10px;
     color: chocolate;
+    overflow-y: auto;
 }

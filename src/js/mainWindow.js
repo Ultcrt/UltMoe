@@ -250,10 +250,14 @@ function appendSubscription(id, name, keywords, downloadedTime, url, downloaded)
 
 async function updateSchedule() {
     console.log("Hourly update")
+
+    let warningList = []
     for (const key in subscriptionRecords) {
         const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(subscriptionRecords[key]["keywords"])
 
-        if (handleUpdateStatus(status, subscriptionRecords[key]["name"])) {
+        const {isSuccess, warning} = handleUpdateStatus(status, subscriptionRecords[key]["name"])
+
+        if (isSuccess) {
             if ((!subscriptionRecords[key]["downloaded"]) || torrentUrl !== subscriptionRecords[key]["torrentUrl"]) {
                 window.electronAPI.download(torrentUrl, downloadPathLabel.textContent,
                     subscriptionRecords[key]["name"], key)
@@ -265,19 +269,28 @@ async function updateSchedule() {
                 localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
             }
         }
+        else {
+            warningList.push(warning)
+        }
+    }
+
+    if (warningList.length > 0) {
+        let warningContent = ""
+        for (const warning of warningList) {
+            warningContent += warning+"\n"
+        }
+        window.electronAPI.openWarningDialog(warningContent)
     }
 }
 
 function handleUpdateStatus(status, name) {
     switch (status) {
         case 0:
-            return true
+            return { isSuccess: true, warning: "" }
         case 1:
-            window.electronAPI.openWarningDialog(`订阅"${name}"的搜索结果为空`)
-            return false
+            return { isSuccess: false, warning: `!!!!\n` }
         case 2:
-            window.electronAPI.openWarningDialog(`订阅"${name}"更新时发生网络错误`)
-            return false
+            return { isSuccess: false, warning: `@@@@\n` }
     }
 }
 
