@@ -14,7 +14,8 @@ const pollingIntervalNumber = document.querySelector("#pollingIntervalNumber")
 const downloadPathButton = document.querySelector("#downloadPathButton")
 const downloadPathLabel = document.querySelector("#downloadPathLabel")
 const cleanDeleteCheckbox = document.querySelector("#cleanDeleteCheckbox")
-const clearTodayTime = document.querySelector("#clearTodayTime")
+const clearTodayHour = document.querySelector("#clearTodayHour")
+const clearTodayMinute = document.querySelector("#clearTodayMinute")
 
 const subscriptionDeleteButtons = document.getElementsByClassName("subscriptionDeleteButton")
 const downloadedTimeUrl = document.getElementsByClassName("downloadedTimeUrl")
@@ -24,18 +25,25 @@ let settingRecords = {
     "runAtStartup": false,
     "cleanDelete": false,
     "pollingInterval": 5,
-    "clearTodayTime": "00:00",
+    "clearTodayTime": { "hour": 0, "minute": 0},
     "downloadPath": "./Download"
+}
+let lastAppRunningTimestamp = 0
+
+if (localStorage.getItem("lastAppRunningTimestamp")) {
+    lastAppRunningTimestamp = localStorage.getItem("lastAppRunningTimestamp")
 }
 
 if (localStorage.getItem("subscriptions")) {
     subscriptionRecords = JSON.parse(localStorage.getItem("subscriptions"))
 
-    for(const key in subscriptionRecords) {
-        appendSubscription(key, subscriptionRecords[key]["name"], subscriptionRecords[key]["keywords"],
-            subscriptionRecords[key]["downloadedTime"], subscriptionRecords[key]["pageUrl"],
-            subscriptionRecords[key]["downloaded"])
+    for(const id in subscriptionRecords) {
+        appendSubscription(id, subscriptionRecords[id]["name"], subscriptionRecords[id]["keywords"],
+            subscriptionRecords[id]["downloadedTime"], subscriptionRecords[id]["pageUrl"],
+            subscriptionRecords[id]["downloaded"])
     }
+
+    initSubscriptionCallback()
 }
 
 if (localStorage.getItem("settings")) {
@@ -44,17 +52,21 @@ if (localStorage.getItem("settings")) {
     runAtStartupCheckbox.checked = settingRecords["runAtStartup"]
     cleanDeleteCheckbox.checked = settingRecords["cleanDelete"]
     pollingIntervalNumber.value = settingRecords["pollingInterval"]
-    clearTodayTime.value = settingRecords["clearTodayTime"]
+    clearTodayHour.value = settingRecords["clearTodayTime"]["hour"]
+    clearTodayMinute.value = settingRecords["clearTodayTime"]["minute"]
     downloadPathLabel.textContent = settingRecords["downloadPath"]
 }
 
-updateSchedule()
-
 window.electronAPI.setRunAtStartup(runAtStartupCheckbox.checked)
-window.electronAPI.setClearTodayTime(clearTodayTime.value, downloadPathLabel.textContent)
+window.electronAPI.setClearTodayTime(clearTodayHour.value, clearTodayMinute.value, downloadPathLabel.textContent)
+
+checkClearTodayAtLaunch()
+
+updateSchedule()
 let updateIntervalId = setInterval(updateSchedule, hourToMs(pollingIntervalNumber.value))
 
-initSubscriptionCallback()
+lastAppRunningTimestamp = Date.now()
+localStorage.setItem("lastAppRunningTimestamp", lastAppRunningTimestamp)
 
 closeButton.addEventListener("click", ()=>{
     window.electronAPI.quit()
@@ -78,14 +90,14 @@ subscriptionSubmitButton.addEventListener("click", async ()=>{
     if (subscriptionInput.value.trim() !== "") {
         const keywords = subscriptionInput.value.split(" ")
         const {pageUrl, torrentUrl, status} = await window.electronAPI.updateWithKeywords(keywords)
-        const key = Date.now().toString()
+        const id = Date.now().toString()
         const nullDatetime = "----/--/-- --:--:--"
         let name = keywords[0];
 
         if (handleUpdateStatus(status, name)) {
-            appendSubscription(key, undefined, keywords, nullDatetime, pageUrl, false)
+            appendSubscription(id, undefined, keywords, nullDatetime, pageUrl, false)
 
-            subscriptionRecords[key] = {
+            subscriptionRecords[id] = {
                 "name": name,
                 "keywords": keywords,
                 "downloadedTime": nullDatetime,
@@ -98,7 +110,7 @@ subscriptionSubmitButton.addEventListener("click", async ()=>{
 
             initSubscriptionCallback()
 
-            window.electronAPI.download(torrentUrl, downloadPathLabel.textContent, name, key)
+            window.electronAPI.download(torrentUrl, downloadPathLabel.textContent, name, id)
 
             subscriptionInput.value = ""
         }
@@ -117,10 +129,30 @@ cleanDeleteCheckbox.addEventListener("click", ()=>{
     localStorage.setItem("settings", JSON.stringify(settingRecords))
 })
 
-clearTodayTime.addEventListener("change", ()=>{
-    window.electronAPI.setClearTodayTime(clearTodayTime.value, downloadPathLabel.textContent)
+clearTodayHour.addEventListener("change", () => {
+    if (clearTodayHour.value < 0) {
+        clearTodayHour.value = 0
+    }
+    else if(clearTodayHour.value > 23) {
+        clearTodayHour.value = 23
+    }
 
-    settingRecords["clearTodayTime"] = clearTodayTime.value
+    window.electronAPI.setClearTodayTime(clearTodayHour.value, clearTodayMinute.value, downloadPathLabel.textContent)
+
+    settingRecords["clearTodayTime"]["hour"] = clearTodayHour.value
+    localStorage.setItem("settings", JSON.stringify(settingRecords))
+})
+
+clearTodayMinute.addEventListener("change", () => {
+    if (clearTodayMinute.value < 0) {
+        clearTodayMinute.value = 0
+    }
+    else if(clearTodayMinute.value > 59) {
+        clearTodayMinute.value = 59
+    }
+    window.electronAPI.setClearTodayTime(clearTodayHour.value, clearTodayMinute.value, downloadPathLabel.textContent)
+
+    settingRecords["clearTodayTime"]["minute"] = clearTodayMinute.value
     localStorage.setItem("settings", JSON.stringify(settingRecords))
 })
 
@@ -157,9 +189,7 @@ window.electronAPI.onDownloadDone((event, id)=>{
     targetDownloadedTimeUrl.textContent = new Date().toLocaleString()
 
     subscriptionRecords[id]["downloaded"] = true
-
     subscriptionRecords[id]["downloadedTime"] = targetDownloadedTimeUrl.textContent
-
     localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
 
     new Notification(
@@ -220,7 +250,7 @@ function appendSubscription(id, name, keywords, downloadedTime, url, downloaded)
         name = nonemptyKeywords[0]
     }
 
-    const downloadedHtml = downloaded ? "done" : ""
+    const downloadedHtmlClass = downloaded ? "done" : ""
     const startValue = downloaded ? 100 : 0
 
     subscriptionsTable.innerHTML +=
@@ -233,7 +263,7 @@ function appendSubscription(id, name, keywords, downloadedTime, url, downloaded)
                     </div>
                 </div>
                 <div class="subscriptionCell progress">
-                    <progress class="subscriptionProgressbar ${downloadedHtml}" value=${startValue} max="100">                
+                    <progress class="subscriptionProgressbar ${downloadedHtmlClass}" value=${startValue} max="100">                
                     </progress>
                 </div>
                 <div class="subscriptionCell downloadedTime">
@@ -249,22 +279,29 @@ function appendSubscription(id, name, keywords, downloadedTime, url, downloaded)
 }
 
 async function updateSchedule() {
-    console.log("Hourly update")
-
     let warningList = []
-    for (const key in subscriptionRecords) {
-        const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(subscriptionRecords[key]["keywords"])
+    for (const id in subscriptionRecords) {
+        const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(subscriptionRecords[id]["keywords"])
 
-        const {isSuccess, warning} = handleUpdateStatus(status, subscriptionRecords[key]["name"])
+        const {isSuccess, warning} = handleUpdateStatus(status, subscriptionRecords[id]["name"])
 
         if (isSuccess) {
-            if ((!subscriptionRecords[key]["downloaded"]) || torrentUrl !== subscriptionRecords[key]["torrentUrl"]) {
-                window.electronAPI.download(torrentUrl, downloadPathLabel.textContent,
-                    subscriptionRecords[key]["name"], key)
+            if ((!subscriptionRecords[id]["downloaded"]) || torrentUrl !== subscriptionRecords[id]["torrentUrl"]) {
+                const targetRow = document.getElementById(id)
+                const targetProgress = targetRow.querySelector("progress")
+                const targetDownloadedTimeUrl = targetRow.querySelector(".downloadedTimeUrl")
 
-                subscriptionRecords[key]["url"] = url
-                subscriptionRecords[key]["torrentUrl"] = torrentUrl
-                subscriptionRecords[key]["downloaded"] = false
+                targetProgress.classList.remove("done")
+                targetDownloadedTimeUrl.textContent = "----/--/-- --:--:--"
+                targetDownloadedTimeUrl.href = url
+
+                window.electronAPI.download(torrentUrl, downloadPathLabel.textContent,
+                    subscriptionRecords[id]["name"], id)
+
+                subscriptionRecords[id]["url"] = url
+                subscriptionRecords[id]["torrentUrl"] = torrentUrl
+                subscriptionRecords[id]["downloaded"] = false
+                subscriptionRecords[id]["downloadedTime"] = "----/--/-- --:--:--"
 
                 localStorage.setItem("subscriptions", JSON.stringify(subscriptionRecords))
             }
@@ -281,6 +318,9 @@ async function updateSchedule() {
         }
         window.electronAPI.openWarningDialog(warningContent)
     }
+
+    lastAppRunningTimestamp = Date.now()
+    localStorage.setItem("lastAppRunningTimestamp", lastAppRunningTimestamp)
 }
 
 function handleUpdateStatus(status, name) {
@@ -288,12 +328,46 @@ function handleUpdateStatus(status, name) {
         case 0:
             return { isSuccess: true, warning: "" }
         case 1:
-            return { isSuccess: false, warning: `!!!!\n` }
+            return { isSuccess: false, warning: `订阅"${name}"的搜索结果为空\n` }
         case 2:
-            return { isSuccess: false, warning: `@@@@\n` }
+            return { isSuccess: false, warning: `订阅"${name}"更新时发生网络错误\n` }
+    }
+}
+
+function checkClearTodayAtLaunch() {
+    let currentDate = new Date()
+    let lastAppRunningDate = new Date(lastAppRunningTimestamp)
+
+    let currentDayBasedTimestamp = currentDate.getHours() * 60 + currentDate.getMinutes()
+    let lastAppRunningDayBasedTimestamp = lastAppRunningDate.getHours() * 60 + lastAppRunningDate.getMinutes()
+    let clearTodayDayBasedTimestamp = clearTodayHour.value * 60 + clearTodayMinute.value
+
+    if(inTheSameDay(currentDate, lastAppRunningDate)) {
+        if ((lastAppRunningDayBasedTimestamp < clearTodayDayBasedTimestamp) && (clearTodayDayBasedTimestamp < currentDayBasedTimestamp)) {
+            window.electronAPI.clearToday(downloadPathLabel.textContent)
+        }
+    }
+    else {
+        if (currentDayBasedTimestamp - lastAppRunningDayBasedTimestamp >= 24 * 60) {
+            window.electronAPI.clearToday(downloadPathLabel.textContent)
+        }
+        else {
+            if (lastAppRunningDayBasedTimestamp < clearTodayDayBasedTimestamp) {
+                window.electronAPI.clearToday(downloadPathLabel.textContent)
+            }
+            else {
+                if(currentDayBasedTimestamp > clearTodayDayBasedTimestamp) {
+                    window.electronAPI.clearToday(downloadPathLabel.textContent)
+                }
+            }
+        }
     }
 }
 
 function hourToMs(hour) {
     return hour * 60 * 60 * 1000;
+}
+
+function inTheSameDay(dateA, dateB) {
+    return (dateA.getDay() === dateB.getDay()) && (dateA.getMonth() === dateB.getMonth()) && dateA.getFullYear() === dateB.getFullYear()
 }

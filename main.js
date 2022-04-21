@@ -216,11 +216,13 @@ function createMainWindow() {
         }
     })
 
-    ipcMain.on("mainWindow:setClearTodayTime", (event, clearTodayTime, downloadPath) => {
-        const [hour, minute] = clearTodayTime.split(":")
+    ipcMain.on("mainWindow:clearToday", (event, downloadPath) => {
+        fs.rmSync(path.join(downloadPath, "今日更新"), { recursive: true, force: true });
+    })
 
+    ipcMain.on("mainWindow:setClearTodayTime", (event, clearTodayHour, clearTodayMinute, downloadPath) => {
         job.cancel()
-        job = schedule.scheduleJob(`${minute} ${hour} * * *`, function () {
+        job = schedule.scheduleJob(`${clearTodayMinute} ${clearTodayHour} * * *`, function () {
 
             console.log("Clear today schedule triggered")
 

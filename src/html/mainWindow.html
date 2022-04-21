@@ -51,8 +51,12 @@
                         <input id="pollingIntervalNumber" class="settingNumber typeArea" type="number" value="5"/>
                     </div>
                     <div class="settingItem">
-                        <label for="clearTodayTime">今日更新文件夹清空时间</label>
-                        <input id="clearTodayTime" class="clickable" type="time" value="00:00"/>
+                        <label for="clearTodayHour">今日更新文件夹清空时间</label>
+                        <div id="clearTodayTime">
+                            <input id="clearTodayHour" class="settingNumber typeArea" type="number" value="0"/>
+                            <label for="clearTodayMinute">:</label>
+                            <input id="clearTodayMinute" class="settingNumber typeArea" type="number" value="0"/>
+                        </div>
                     </div>
                     <div class="settingItem">
                         <label for="downloadPathButton">下载路径</label>
