@@ -39,8 +39,8 @@
   "config": {
     "forge": {
       "packagerConfig": {
-        "name": "ultmoe",
-        "icon": "./assets/UltMoe.png"
+        "name": "UltMoe",
+        "icon": "./assets/UltMoe"
       },
       "makers": [
         {
@@ -58,7 +58,7 @@
         {
           "name": "@electron-forge/maker-deb",
           "config": {
-            "name": "ultmoe"
+            "name": "UltMoe"
           }
         },
         {

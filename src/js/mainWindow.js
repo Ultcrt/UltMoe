@@ -94,7 +94,9 @@ subscriptionSubmitButton.addEventListener("click", async ()=>{
         const nullDatetime = "----/--/-- --:--:--"
         let name = keywords[0];
 
-        if (handleUpdateStatus(status, name)) {
+        const {isSuccess, warning} = handleUpdateStatus(status, name)
+
+        if (isSuccess) {
             appendSubscription(id, undefined, keywords, nullDatetime, pageUrl, false)
 
             subscriptionRecords[id] = {
@@ -113,6 +115,9 @@ subscriptionSubmitButton.addEventListener("click", async ()=>{
             window.electronAPI.download(torrentUrl, downloadPathLabel.textContent, name, id)
 
             subscriptionInput.value = ""
+        }
+        else {
+            window.electronAPI.openWarningDialog(warning)
         }
     }
 })
@@ -281,7 +286,7 @@ function appendSubscription(id, name, keywords, downloadedTime, url, downloaded)
 async function updateSchedule() {
     let warningList = []
     for (const id in subscriptionRecords) {
-        const {url, torrentUrl, status} = await window.electronAPI.updateWithKeywords(subscriptionRecords[id]["keywords"])
+        const {pageUrl, torrentUrl, status} = await window.electronAPI.updateWithKeywords(subscriptionRecords[id]["keywords"])
 
         const {isSuccess, warning} = handleUpdateStatus(status, subscriptionRecords[id]["name"])
 
@@ -292,13 +297,14 @@ async function updateSchedule() {
                 const targetDownloadedTimeUrl = targetRow.querySelector(".downloadedTimeUrl")
 
                 targetProgress.classList.remove("done")
+                targetProgress.value = 0
                 targetDownloadedTimeUrl.textContent = "----/--/-- --:--:--"
-                targetDownloadedTimeUrl.href = url
+                targetDownloadedTimeUrl.href = pageUrl
 
                 window.electronAPI.download(torrentUrl, downloadPathLabel.textContent,
                     subscriptionRecords[id]["name"], id)
 
-                subscriptionRecords[id]["url"] = url
+                subscriptionRecords[id]["url"] = pageUrl
                 subscriptionRecords[id]["torrentUrl"] = torrentUrl
                 subscriptionRecords[id]["downloaded"] = false
                 subscriptionRecords[id]["downloadedTime"] = "----/--/-- --:--:--"

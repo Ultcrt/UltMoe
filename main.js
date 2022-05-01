@@ -16,7 +16,25 @@ const updateStatus = {
 const downloader = new WebTorrent()
 const torrentMap = {}
 
-let job = schedule.scheduleJob('0 0 1 1 *', function(){});
+let mainWindow = null;
+
+let job = schedule.scheduleJob('0 0 1 1 *', function(){})
+
+const gotTheSingleLock = app.requestSingleInstanceLock()
+
+if (gotTheSingleLock) {
+    app.on("second-instance", () => {
+        if (mainWindow) {
+            if (!mainWindow.isVisible()) {
+                mainWindow.show()
+            }
+            mainWindow.focus()
+        }
+    })
+}
+else {
+    app.quit()
+}
 
 app.enableSandbox()
 
@@ -36,7 +54,7 @@ function quitApp() {
 }
 
 function createMainWindow() {
-    const mainWindow = new BrowserWindow({
+    mainWindow = new BrowserWindow({
         width: 1050,
         height: 650,
 
@@ -204,7 +222,9 @@ function createMainWindow() {
     })
 
     ipcMain.on("mainWindow:deleteTorrent", (event, id, cleanDelete)=>{
-        torrentMap[id].destroy({destroyStore: cleanDelete})
+        if (id in torrentMap) {
+            torrentMap[id].destroy({destroyStore: cleanDelete})
+        }
     })
 
     ipcMain.on("mainWindow:setRunAtStartup", (event, flag) => {
