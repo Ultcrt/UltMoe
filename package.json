@@ -1,6 +1,6 @@
 {
   "name": "ultmoe",
-  "version": "1.0.0",
+  "version": "0.0.0-beta.0",
   "description": " A subscription manager and downloader for dmhy based on Electron / 一个基于Electron的DMHY订阅器与下载器",
   "main": "main.js",
   "scripts": {
@@ -46,7 +46,7 @@
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "ultmoe"
+            "name": "UltMoe"
           }
         },
         {
