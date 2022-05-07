@@ -13,7 +13,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     deleteTorrent: (id, cleanDelete) => ipcRenderer.send("mainWindow:deleteTorrent", id, cleanDelete),
     setRunAtStartup: (flag) => ipcRenderer.send("mainWindow:setRunAtStartup", flag),
     setClearTodayTime: (clearTodayHour, clearTodayMinute, downloadPath) => ipcRenderer.send("mainWindow:setClearTodayTime", clearTodayHour, clearTodayMinute, downloadPath),
+    dialogLoaded: () => ipcRenderer.send("styledDialog:dialogLoaded"),
     closeDialog: () => ipcRenderer.send("styledDialog:closeDialog"),
     onInitTextContent: (callback)=> ipcRenderer.on("styledDialog:onInitTextContent", callback),
-    clearToday: (downloadPath) => ipcRenderer.send("mainWindow:clearToday")
+    // TODO Fix downloadPath not used
+    clearToday: (downloadPath) => ipcRenderer.send("mainWindow:clearToday", downloadPath)
 })
