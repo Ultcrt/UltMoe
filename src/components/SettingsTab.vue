@@ -32,14 +32,12 @@
         />
       </div>
       <div class="settingItem">
-        <label for="downloadPathButton">下载路径</label>
-        <div id="directoryPicker">
-          <label id="downloadPathLabel" for="downloadPathButton" >{{ settings.downloadPath }}</label>
-          <button
-              @click="onDownloadPathButtonClick"
-              id="downloadPathButton"
-              class="clickable">浏览</button>
-        </div>
+        <label for="downloadPathPicker">下载路径</label>
+        <PathPicker id="downloadPathPicker" :defaultPath="settings.downloadPath" @submit="onDownloadPathSubmit"/>
+      </div>
+      <div class="settingItem">
+        <label for="subscriptionPathPicker">订阅路径</label>
+        <PathPicker id="subscriptionPathPicker" :defaultPath="settings.subscriptionPath" @submit="onSubscriptionPathSubmit"/>
       </div>
     </div>
   </div>
@@ -49,6 +47,7 @@
 import TimeInput from "@/components/TimeInput";
 import {toRaw, watch} from "vue";
 import {settings} from "@/js/sharedState";
+import PathPicker from "@/components/PathPicker";
 
 watch(()=>settings.runAtStartup, (flag)=>{
   window.electronAPI.setRunAtStartup(flag)
@@ -68,15 +67,15 @@ function onIntervalInput(event){
 function onTimeChange(hour, minute) {
   settings.clearTodayTime.hour = hour
   settings.clearTodayTime.minute = minute
-  window.electronAPI.setClearTodayTime(hour, minute, toRaw(settings.downloadPath))
+  window.electronAPI.setClearTodayTime(hour, minute, toRaw(settings.subscriptionPath))
 }
 
-async function onDownloadPathButtonClick() {
-  const newPath = await window.electronAPI.openDirectoryPicker()
+function onDownloadPathSubmit(path) {
+  settings.downloadPath = path
+}
 
-  if(newPath !== undefined) {
-    settings.downloadPath = newPath
-  }
+function onSubscriptionPathSubmit(path) {
+  settings.subscriptionPath = path
 }
 </script>
 
@@ -97,39 +96,6 @@ async function onDownloadPathButtonClick() {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-}
-
-#directoryPicker {
-  display: flex;
-  flex-direction: row;
-  justify-content: flex-end;
-  align-items: center;
-  width: 70%;
-}
-
-#downloadPathLabel {
-  width: 90%;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  text-align: right;
-  background-color: white;
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
-}
-
-#downloadPathButton {
-  width: 10%;
-  height: 100%;
-  border: none;
-  color: whitesmoke;
-  background-color: grey;
-  border-top-right-radius: 10px;
-  border-bottom-right-radius: 10px;
-}
-
-#downloadPathButton:active {
-  background-color: indianred;
 }
 
 .settingItem {

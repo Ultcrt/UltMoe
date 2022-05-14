@@ -1,20 +1,21 @@
 <template>
   <div class="subscriptionItem">
-    <div class="subscriptionCell name">{{ name }}</div>
+    <div class="subscriptionCell name">{{ subscriptions[props.subscriptionId]['name'] }}</div>
     <div class="subscriptionCell keywords">
       <div class="keywordList">
-        <SubscriptionKeyword
-            v-for="(keyword, index) of props.keywords"
-            :keyword="keyword"
+        <StyledLabel
+            v-for="(keyword, index) of subscriptions[props.subscriptionId]['keywords']"
+            :text="keyword"
             :key="index"
         />
       </div>
     </div>
-    <div class="subscriptionCell progress">
-      <ProgressBar :progress="subscriptions[props.subscriptionId]['progress']" />
-    </div>
-    <div class="subscriptionCell downloadedTime">
-      <a :href="props.url" @click="onUrlClick" class="downloadedTimeUrl clickable">{{ downloadedTime }}</a>
+    <div class="subscriptionCell updateTime">
+      <a
+          :href="subscriptions[props.subscriptionId]['pageUrl']"
+          @click="onUrlClick"
+          class="updateTimeUrl clickable"
+      >{{ subscriptions[props.subscriptionId]['updateTime'] }}</a>
     </div>
     <div class="subscriptionCell operations">
       <div class="subscriptionOperations">
@@ -27,13 +28,12 @@
 <script setup>
 import {defineEmits, defineProps} from "vue";
 import DeleteButton from "@/components/DeleteButton";
-import ProgressBar from "@/components/ProgressBar";
-import SubscriptionKeyword from "@/components/SubscriptionKeyword";
+import StyledLabel from "@/components/StyledLabel";
 import {subscriptions} from "@/js/sharedState";
 
 defineEmits(['delete'])
 
-const props = defineProps(["name", "url", "downloadedTime", "keywords", "subscriptionId"])
+const props = defineProps(["subscriptionId"])
 
 function onUrlClick(event) {
   event.preventDefault()
@@ -60,13 +60,9 @@ function onUrlClick(event) {
   width: 15%;
 }
 
-.subscriptionCell.downloadedTime {
-  width: 10%;
+.subscriptionCell.updateTime {
+  width: 25%;
   text-align: center;
-}
-
-.subscriptionCell.progress {
-  width: 20%;
 }
 
 .subscriptionCell.operations {
@@ -81,11 +77,18 @@ function onUrlClick(event) {
   align-items: center;
 }
 
-.downloadedTimeUrl {
+.updateTimeUrl {
   color: indianred;
 }
 
-.downloadedTimeUrl:visited {
+.updateTimeUrl:visited {
   color: indianred;
+}
+
+.subscriptionOperations {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
 }
 </style>

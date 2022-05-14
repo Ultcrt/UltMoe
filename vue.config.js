@@ -3,13 +3,13 @@ const path = require("path")
 module.exports = {
   pages: {
     mainWindow: {
-      entry: 'src/mainWindow/mainWindow.js',
+      entry: 'src/pages/mainWindow/mainWindow.js',
       template: 'public/mainWindow.html',
       filename: 'mainWindow.html',
       title: 'Main Window'
     },
     styledDialog: {
-      entry: 'src/styledDialog/styledDialog.js',
+      entry: 'src/pages/styledDialog/styledDialog.js',
       template: 'public/styledDialog.html',
       filename: 'styledDialog.html',
       title: 'Styled Dialog'
@@ -17,7 +17,9 @@ module.exports = {
   },
   pluginOptions: {
     electronBuilder: {
-      preload: 'src/preload.js',
+      appId: 'UltMoe',
+      mainProcessFile: 'src/js/background.js',
+      preload: 'src/js/preload.js',
       builderOptions: {
         extraResources: [
           {

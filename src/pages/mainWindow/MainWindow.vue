@@ -1,15 +1,30 @@
 <template>
   <div id="app">
     <div id="tabMenu">
-      <TabSelector @click="currentTab='SubscriptionsTab'" text="订阅"/>
-      <TabSelector @click="currentTab='SettingsTab'" text="设置"/>
+      <TabSelector
+          @click="currentTab='SubscriptionsTab'"
+          :isSelected="currentTab==='SubscriptionsTab'"
+          text="订阅"
+      />
+      <TabSelector
+          @click="currentTab='DownloadsTab'"
+          :isSelected="currentTab==='DownloadsTab'"
+          text="下载"
+      />
+      <TabSelector
+          @click="currentTab='SettingsTab'"
+          :isSelected="currentTab==='SettingsTab'"
+          text="设置"
+      />
     </div>
     <div id="functionality">
       <div id="windowControlBar">
         <MinimizeButton />
         <CloseButton />
       </div>
-      <component :is="tabs[currentTab]" />
+      <div id="windowCurrentComponent">
+        <component :is="tabs[currentTab]" />
+      </div>
     </div>
   </div>
 </template>
@@ -20,48 +35,64 @@ import MinimizeButton from "@/components/MinimizeButton";
 import SubscriptionsTab from "@/components/SubscriptionsTab";
 import SettingsTab from "@/components/SettingsTab";
 import TabSelector from "@/components/TabSelector";
+import DownloadsTab from "@/components/DownloadsTab"
 import {ref, toRaw, watch} from "vue";
 import {
-  getLastAppRunningTimestamp,
   handleUpdateStatus, hourToMs,
   inTheSameDay
 } from "@/js/globalFuntions";
-import {settings, subscriptions, lastAppRunningTimestamp} from "@/js/sharedState";
+import {settings, subscriptions, lastAppRunningTimestamp, downloads} from "@/js/sharedState";
 
 let updateIntervalId
-const tabs = {SubscriptionsTab, SettingsTab}
+const tabs = {SubscriptionsTab, DownloadsTab, SettingsTab}
 const currentTab = ref('SubscriptionsTab')
 
 lastAppRunningTimestamp.value = Date.now()
 
-checkClearTodayAtLaunch()
+window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, path, fromSubscription)=>{
+  if (id in downloads) {
+    progress = downloads[id]['progress']
+  }
+  downloads[id] = {
+    name,
+    torrent,
+    progress,
+    size,
+    path,
+    fromSubscription
+  }
+})
 
-updateSchedule()
-updateIntervalId = setInterval(updateSchedule, hourToMs(settings.pollingInterval))
+window.electronAPI.onTorrentProgress((event, id, progress)=>{
+  downloads[id]["progress"] = progress
+})
 
+window.electronAPI.onTorrentDone((event, id)=>{
+  if (downloads[id]["progress"] < 1) {
+    downloads[id]["progress"] = 1
+
+    new Notification(
+        `"${downloads[id]["name"]}"已完成下载`,
+        { body: `位置：${downloads[id]["path"]}` }
+    )
+  }
+})
+
+initClearToday()
+
+initDownloads()
+
+// init subscriptions
+updateSubscriptions()
+updateIntervalId = setInterval(updateSubscriptions, hourToMs(settings.pollingInterval))
 watch(()=>settings.pollingInterval, (newInterval)=>{
   clearInterval(updateIntervalId)
-  updateIntervalId = setInterval(updateSchedule, hourToMs(newInterval))
+  updateIntervalId = setInterval(updateSubscriptions, hourToMs(newInterval))
 })
 
-window.electronAPI.onDownloadDone((event, id)=>{
-  subscriptions[id]["progress"] = 100
-  subscriptions[id]["downloadedTime"] = new Date().toLocaleString()
-
-  new Notification(
-      `订阅"${subscriptions[id]["name"]}"已完成下载`,
-      { body: `详情：${subscriptions[id]["pageUrl"]}` }
-  )
-})
-
-window.electronAPI.onDownloadProgressUpdate((event, id, value)=>{
-  subscriptions[id]["progress"] = value
-})
-
-function checkClearTodayAtLaunch() {
-  const lastAppRunningTimestamp = getLastAppRunningTimestamp()
+function initClearToday() {
   let currentDate = new Date()
-  let lastAppRunningDate = new Date(lastAppRunningTimestamp)
+  let lastAppRunningDate = new Date(lastAppRunningTimestamp.value)
 
   let currentDayBasedTimestamp = currentDate.getHours() * 60 + currentDate.getMinutes()
   let lastAppRunningDayBasedTimestamp = lastAppRunningDate.getHours() * 60 + lastAppRunningDate.getMinutes()
@@ -69,31 +100,37 @@ function checkClearTodayAtLaunch() {
 
   if(inTheSameDay(currentDate, lastAppRunningDate)) {
     if ((lastAppRunningDayBasedTimestamp < clearTodayDayBasedTimestamp) && (clearTodayDayBasedTimestamp < currentDayBasedTimestamp)) {
-      window.electronAPI.clearToday(toRaw(settings.downloadPath))
+      window.electronAPI.clearToday(toRaw(settings.subscriptionPath))
     }
   }
   else {
     if (currentDayBasedTimestamp - lastAppRunningDayBasedTimestamp >= 24 * 60) {
-      window.electronAPI.clearToday(toRaw(settings.downloadPath))
+      window.electronAPI.clearToday(toRaw(settings.subscriptionPath))
     }
     else {
       if (lastAppRunningDayBasedTimestamp < clearTodayDayBasedTimestamp) {
-        window.electronAPI.clearToday(toRaw(settings.downloadPath))
+        window.electronAPI.clearToday(toRaw(settings.subscriptionPath))
       }
       else {
         if(currentDayBasedTimestamp > clearTodayDayBasedTimestamp) {
-          window.electronAPI.clearToday(toRaw(settings.downloadPath))
+          window.electronAPI.clearToday(toRaw(settings.subscriptionPath))
         }
       }
     }
   }
 
   window.electronAPI.setClearTodayTime(
-      toRaw(settings.clearTodayTime.hour), toRaw(settings.clearTodayTime.minute), toRaw(settings.downloadPath)
+      toRaw(settings.clearTodayTime.hour), toRaw(settings.clearTodayTime.minute), toRaw(settings.subscriptionPath)
   )
 }
 
-async function updateSchedule() {
+function initDownloads() {
+  for (const id in downloads) {
+    window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']))
+  }
+}
+
+async function updateSubscriptions() {
   let warningList = []
   for (const id in subscriptions) {
     const {pageUrl, torrentUrl, status} = await window.electronAPI.updateWithKeywords(
@@ -103,15 +140,11 @@ async function updateSchedule() {
     const {isSuccess, warning} = handleUpdateStatus(status, subscriptions[id]["name"])
 
     if (isSuccess) {
-      if ((subscriptions[id]["progress"] < 100) || torrentUrl !== subscriptions[id]["torrentUrl"]) {
-        window.electronAPI.download(torrentUrl, toRaw(settings.downloadPath), toRaw(subscriptions[id]["name"]), id)
+      if (pageUrl !== subscriptions[id]["pageUrl"]) {
+        window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
 
-        subscriptions[id]["url"] = pageUrl
-        subscriptions[id]["torrentUrl"] = torrentUrl
-        subscriptions[id]["progress"] = 0
-        subscriptions[id]["downloadedTime"] = "----/--/-- --:--:--"
-
-        localStorage.setItem("subscriptions", JSON.stringify(subscriptions))
+        subscriptions[id]["pageUrl"] = pageUrl
+        subscriptions[id]["updateTime"] = new Date().toLocaleString()
       }
     }
     else {
@@ -174,5 +207,10 @@ async function updateSchedule() {
   justify-content: space-around;
   width: 10%;
   height: 5%;
+}
+
+#windowCurrentComponent {
+  height: 95%;
+  width: 100%;
 }
 </style>

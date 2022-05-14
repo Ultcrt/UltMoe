@@ -1,22 +1,18 @@
 <template>
-  <div class="subscriptionTab">
+  <div class="subscriptionsTab">
     <div id="subscriptionsTableArea" class="banDrag">
       <div id="subscriptionsTable">
         <SubscriptionItem
             v-for="(value, key, index) in subscriptions"
             :key="index"
             :subscriptionId="key"
-            :name="value['name']"
-            :url="value['pageUrl']"
-            :downloadedTime="value['downloadedTime']"
-            :keywords="value['keywords']"
             @delete="onDelete"
         />
       </div>
     </div>
     <div id="subscriptionCreateArea">
       <label for="subscriptionInput">关键字：</label>
-      <InputWithSubmitButton id="subscriptionInput" placeHolder="以空格分隔每个关键字" @submit="onKeywordsSubmit" />
+      <InputWithSubmitButton id="subscriptionInput" placeHolder="以空格分隔每个关键词（第一个关键词为订阅名）" @submit="onKeywordsSubmit" />
     </div>
   </div>
 </template>
@@ -42,22 +38,20 @@ async function onKeywordsSubmit(text) {
     if (nonemptyKeywords.length > 0) {
       const {pageUrl, torrentUrl, status} = await window.electronAPI.updateWithKeywords(nonemptyKeywords)
       const id = Date.now().toString()
-      const nullDatetime = "----/--/-- --:--:--"
       let name = nonemptyKeywords[0];
 
       const {isSuccess, warning} = handleUpdateStatus(status, name)
 
       if (isSuccess) {
         subscriptions[id] = {
-          "name": name,
+          name,
+          "path": await window.electronAPI.pathJoin(settings.subscriptionPath, name),
           "keywords": nonemptyKeywords,
-          "downloadedTime": nullDatetime,
-          "pageUrl": pageUrl,
-          "torrentUrl": torrentUrl,
-          "progress": 0
+          "updateTime": new Date().toLocaleString(),
+          pageUrl,
         }
 
-        window.electronAPI.download(torrentUrl, toRaw(settings.downloadPath), name, id)
+        window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
       }
       else {
         window.electronAPI.openWarningDialog(warning)
@@ -71,24 +65,23 @@ async function onKeywordsSubmit(text) {
 
 function onDelete(targetId) {
   delete subscriptions[targetId]
-  window.electronAPI.deleteTorrent(targetId, toRaw(settings.cleanDelete))
 }
 </script>
 
 <style scoped>
-.subscriptionTab {
+.subscriptionsTab {
   height: 100%;
   width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
 }
 
 #subscriptionsTableArea {
   background-color: lightgrey;
-  width: 93%;
-  height: 92%;
+  width: 90%;
+  height: 90%;
   border-radius: 10px;
   display: block;
   overflow-y: auto;

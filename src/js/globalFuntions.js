@@ -7,6 +7,15 @@ export function getSubscriptions() {
     }
 }
 
+export function getDownloads() {
+    if (localStorage.getItem("downloads")) {
+        return JSON.parse(localStorage.getItem("downloads"))
+    }
+    else {
+        return {}
+    }
+}
+
 export function getSettings() {
     if (localStorage.getItem("settings")) {
         return JSON.parse(localStorage.getItem("settings"))
@@ -17,14 +26,15 @@ export function getSettings() {
             "cleanDelete": false,
             "pollingInterval": 5,
             "clearTodayTime": { "hour": 0, "minute": 0},
-            "downloadPath": "./Download"
+            "downloadPath": window.electronAPI.getSystemDownloadPath(),
+            "subscriptionPath": window.electronAPI.getSystemDownloadPath()
         }
     }
 }
 
 export function getLastAppRunningTimestamp() {
     if (localStorage.getItem("lastAppRunningTimestamp")) {
-        return localStorage.getItem("lastAppRunningTimestamp")
+        return parseInt(localStorage.getItem("lastAppRunningTimestamp"))
     }
     else {
         return 0
@@ -36,7 +46,7 @@ export function hourToMs(hour) {
 }
 
 export function inTheSameDay(dateA, dateB) {
-    return (dateA.getDay() === dateB.getDay()) && (dateA.getMonth() === dateB.getMonth()) && dateA.getFullYear() === dateB.getFullYear()
+    return (dateA.getDate() === dateB.getDate()) && (dateA.getMonth() === dateB.getMonth()) && dateA.getFullYear() === dateB.getFullYear()
 }
 
 export function handleUpdateStatus(status, name) {

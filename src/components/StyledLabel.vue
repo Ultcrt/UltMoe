@@ -1,15 +1,15 @@
 <template>
-  <div class="keyword">{{ props.keyword }}</div>
+  <div class="styledLabel">{{ props.text }}</div>
 </template>
 
 <script setup>
 import {defineProps} from "vue";
 
-const props = defineProps(["keyword"])
+const props = defineProps(["text"])
 </script>
 
 <style scoped>
-.keyword {
+.styledLabel {
   background-color: indianred;
   color: whitesmoke;
 

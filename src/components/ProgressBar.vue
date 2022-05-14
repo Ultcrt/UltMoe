@@ -1,5 +1,5 @@
 <template>
-  <progress class="progressBar" :class="isDone" :value="props.progress" max="100"></progress>
+  <progress class="progressBar" :class="isDone" :value="props.progress * 100" max="100"></progress>
 </template>
 
 <script setup>
@@ -13,7 +13,7 @@ isDoneCheck(props.progress)
 watch(()=>props.progress, isDoneCheck)
 
 function isDoneCheck(newProgress) {
-  if (newProgress >= 100) {
+  if (newProgress >= 1) {
     isDone.value = "done"
   }
   else {
@@ -25,6 +25,8 @@ function isDoneCheck(newProgress) {
 <style scoped>
 .progressBar {
   height: 10px;
+  width: 100%;
+  margin-top: 5px;
   -webkit-appearance: none;
 }
 

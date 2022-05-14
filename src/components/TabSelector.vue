@@ -1,5 +1,5 @@
 <template>
-  <div class="tabSelector selected">
+  <div class="tabSelector" :class="props.isSelected ? 'selected':''">
     <button class="tabButton clickable">{{ props.text }}</button>
     <div class="tabIndicator clickable"></div>
   </div>
@@ -8,7 +8,7 @@
 <script setup>
 import {defineProps} from "vue";
 
-const props = defineProps(['text'])
+const props = defineProps(['text', 'isSelected'])
 </script>
 
 <style scoped>

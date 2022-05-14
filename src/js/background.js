@@ -4,8 +4,6 @@ import { app, protocol, BrowserWindow } from 'electron'
 import { createProtocol } from 'vue-cli-plugin-electron-builder/lib'
 import installExtension, { VUEJS3_DEVTOOLS } from 'electron-devtools-installer'
 import fs from "fs";
-const isDevelopment = process.env.NODE_ENV !== 'production'
-
 import { Tray, Menu, ipcMain, shell, dialog, Notification } from 'electron'
 import axios from 'axios'
 import cheerio from 'cheerio'
@@ -14,16 +12,19 @@ import WebTorrent from "webtorrent"
 import https from "https"
 import schedule from "node-schedule"
 
+const isDevelopment = process.env.NODE_ENV !== 'production'
+
 const updateStatus = {
   "SUCCESS": 0,
   "NOT_FOUND": 1,
   "NETWORK_ERROR": 2
 }
 
-const downloader = new WebTorrent()
+const torrentClient = new WebTorrent()
+
 const torrentMap = {}
 
-let mainWindow = null;
+let mainWindow;
 
 let job = schedule.scheduleJob('0 0 1 1 *', function(){})
 
@@ -44,6 +45,14 @@ else {
 }
 
 app.enableSandbox()
+
+let iconPath;
+
+if (process.env.WEBPACK_DEV_SERVER_URL) {
+  iconPath = path.join(path.dirname(app.getAppPath()), "build/icons")
+} else {
+  iconPath = path.join(path.dirname(app.getPath("exe")), "resources/")
+}
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
@@ -95,6 +104,12 @@ if (isDevelopment) {
   }
 }
 
+torrentClient.on("error", function (err){
+  if (err.message.startsWith("Cannot add duplicate torrent")) {
+    openWarningDialog("UltMoe", "种子已位于下载队列中")
+  }
+})
+
 function mkdirRecursively(path) {
   if (!fs.existsSync(path)){
     fs.mkdirSync(path, { recursive: true });
@@ -102,24 +117,16 @@ function mkdirRecursively(path) {
 }
 
 function quitApp() {
-  downloader.destroy(null)
+  torrentClient.destroy(()=>{})
   app.quit()
 }
 
 async function createWindow() {
-  let iconPath;
-
-  if (process.env.WEBPACK_DEV_SERVER_URL) {
-    iconPath = path.join(path.dirname(app.getAppPath()), "build/icons")
-  } else {
-    iconPath = path.join(path.dirname(app.getPath("exe")), "resources/")
-  }
-
   mainWindow = new BrowserWindow({
-    width: 1050,
-    height: 650,
+    width: 1020,
+    height: 620,
 
-    show: false,
+    show: isDevelopment,
 
     frame: false,
     resizable: false,
@@ -167,6 +174,10 @@ async function createWindow() {
 
   ipcMain.on("mainWindow:openUrlWithExternal", (event, pageUrl)=>{
     shell.openExternal(pageUrl)
+  })
+
+  ipcMain.on("mainWindow:openPathWithExplorer", (event, path)=>{
+    shell.showItemInFolder(path)
   })
 
   ipcMain.handle("mainWindow:openDirectoryPicker", ()=>{
@@ -223,85 +234,20 @@ async function createWindow() {
     })
   })
 
-  ipcMain.on("mainWindow:download", (event, torrentUrl, downloadPath, name, id)=>{
-    const todayPath = path.join(downloadPath, "今日更新", name)
-    const subscriptionPath = path.join(downloadPath, name)
-
-    mkdirRecursively(todayPath)
-    mkdirRecursively(subscriptionPath)
-
-    torrentMap[id] = downloader.add(torrentUrl, {
-      "path": subscriptionPath,
-      "announce": "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt"
-    }, function (torrent) {
-      torrent.on("done", function () {
-        for (const file of torrent.files) {
-          const dstPathWithName = path.join(todayPath, file.name)
-          fs.copyFile(file.path, dstPathWithName, () => {
-          })
-          mainWindow.webContents.send("mainWindow:onDownloadDone", id)
-        }
-      })
-
-      torrent.on("download", function () {
-        const value = torrent.progress * 100.0
-        mainWindow.webContents.send("mainWindow:onDownloadProgressUpdate", id, value)
-      })
-    })
-  })
+  ipcMain.on("mainWindow:addTorrent", addTorrent)
 
   ipcMain.on("mainWindow:openWarningDialog", async (event, textContent) => {
-    if (mainWindow.isVisible()) {
-      const styledDialog = new BrowserWindow({
-        parent: mainWindow,
-        modal: true,
-
-        width: 450,
-        height: 250,
-
-        frame: false,
-        resizable: false,
-
-        transparent: true,
-
-        icon: path.join(iconPath, "256x256.png"),
-
-        webPreferences: {
-          preload: path.join(__dirname, 'preload.js')
-        }
-      })
-
-      styledDialog.removeMenu()
-
-      ipcMain.on("styledDialog:closeDialog", (event) => {
-        if (event.sender.id === styledDialog.webContents.id) {
-          styledDialog.destroy()
-        }
-      })
-
-      ipcMain.on("styledDialog:dialogLoaded", (event)=>{
-        event.sender.send("styledDialog:onInitTextContent", "UltMoe", textContent)
-      })
-
-      // Should be placed after ipcMain.on to avoid ipcRenderer sending before ipcMain.on
-      if (process.env.WEBPACK_DEV_SERVER_URL) {
-        // Load the url of the dev server if in development mode
-        await styledDialog.loadURL(process.env.WEBPACK_DEV_SERVER_URL + "styledDialog.html")
-        if (!process.env.IS_TEST) styledDialog.webContents.openDevTools()
-      } else {
-        createProtocol('app')
-        // Load the mainWindow.html when not in development
-        await styledDialog.loadURL('app://./styledDialog.html')
-      }
-    } else {
-      new Notification({title: "UltMoe", body: textContent}).show()
-    }
+    await openWarningDialog("UltMoe", textContent)
   })
 
-  ipcMain.on("mainWindow:deleteTorrent", (event, id, cleanDelete)=>{
-    if (id in torrentMap) {
-      torrentMap[id].destroy({destroyStore: cleanDelete})
-    }
+  ipcMain.on("mainWindow:deleteTorrent", deleteTorrent)
+
+  ipcMain.on("mainWindow:pauseTorrent", (event, id)=>{
+    deleteTorrent(event, id, false)
+  })
+
+  ipcMain.on("mainWindow:resumeTorrent", (event, id, torrentId, fromSubscription, downloadPath)=>{
+    addTorrent(event, id, torrentId, true, fromSubscription, downloadPath)
   })
 
   ipcMain.on("mainWindow:setRunAtStartup", (event, flag) => {
@@ -313,18 +259,23 @@ async function createWindow() {
     }
   })
 
-  ipcMain.on("mainWindow:clearToday", (event, downloadPath) => {
-    fs.rmSync(path.join(downloadPath, "今日更新"), { recursive: true, force: true });
+  ipcMain.on("mainWindow:clearToday", (event, subscriptionPath) => {
+    fs.rmSync(path.join(subscriptionPath, "今日更新"), { recursive: true, force: true });
   })
 
-  ipcMain.on("mainWindow:setClearTodayTime", (event, clearTodayHour, clearTodayMinute, downloadPath) => {
+  ipcMain.on("mainWindow:setClearTodayTime", (event, clearTodayHour, clearTodayMinute, subscriptionPath) => {
     job.cancel()
     job = schedule.scheduleJob(`${clearTodayMinute} ${clearTodayHour} * * *`, function () {
-
-      console.log("Clear today schedule triggered")
-
-      fs.rmSync(path.join(downloadPath, "今日更新"), { recursive: true, force: true });
+      fs.rmSync(path.join(subscriptionPath, "今日更新"), { recursive: true, force: true });
     })
+  })
+
+  ipcMain.on("mainWindow:getSystemDownloadPath", (event) => {
+    event.returnValue = app.getPath("downloads")
+  })
+
+  ipcMain.handle("mainWindow:pathJoin", (event, paths) => {
+    return path.join(...paths)
   })
 
   // Should be placed after ipcMain.on to avoid ipcRenderer sending before ipcMain.on
@@ -336,5 +287,113 @@ async function createWindow() {
     createProtocol('app')
     // Load the mainWindow.html when not in development
     await mainWindow.loadURL('app://./mainWindow.html')
+  }
+}
+
+async function openWarningDialog(title, body) {
+  if (mainWindow.isVisible()) {
+    const styledDialog = new BrowserWindow({
+      parent: mainWindow,
+      modal: true,
+
+      width: 420,
+      height: 220,
+
+      frame: false,
+      resizable: false,
+
+      transparent: true,
+
+      icon: path.join(iconPath, "256x256.png"),
+
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js')
+      }
+    })
+
+    styledDialog.removeMenu()
+
+    ipcMain.on("styledDialog:closeDialog", (event) => {
+      if (event.sender.id === styledDialog.webContents.id) {
+        styledDialog.destroy()
+      }
+    })
+
+    ipcMain.on("styledDialog:dialogLoaded", (event)=>{
+      event.sender.send("styledDialog:onInitTextContent", title, body)
+    })
+
+    // Should be placed after ipcMain.on to avoid ipcRenderer sending before ipcMain.on
+    if (process.env.WEBPACK_DEV_SERVER_URL) {
+      // Load the url of the dev server if in development mode
+      await styledDialog.loadURL(process.env.WEBPACK_DEV_SERVER_URL + "styledDialog.html")
+      if (!process.env.IS_TEST) styledDialog.webContents.openDevTools()
+    } else {
+      createProtocol('app')
+      // Load the mainWindow.html when not in development
+      await styledDialog.loadURL('app://./styledDialog.html')
+    }
+  } else {
+    new Notification({title, body}).show()
+  }
+}
+
+function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadPath) {
+  let torrentTarget
+
+  if (isRestore) {
+    torrentTarget = Buffer.from(torrentId, "base64")
+  }
+  else {
+    torrentTarget = torrentId
+  }
+
+  mkdirRecursively(downloadPath)
+
+  torrentMap[id] = torrentClient.add(torrentTarget, {
+    "path": downloadPath,
+    "announce": "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt"
+  }, function (torrent) {
+    // ontorrent callback is invoked on torrent ready event
+    mainWindow.webContents.send(
+        "mainWindow:onTorrentReady",
+        id, torrent.name, torrent.torrentFile.toString("base64"), torrent.progress,
+        torrent.length, downloadPath, fromSubscription
+    )
+
+    torrent.on("upload", function () {
+      mainWindow.webContents.send("mainWindow:onTorrentUpload", id, torrent.uploadSpeed)
+    })
+
+    torrent.on("download", function () {
+      const progress = torrent.progress
+      mainWindow.webContents.send("mainWindow:onTorrentProgress", id, progress)
+      mainWindow.webContents.send("mainWindow:onTorrentDownload", id, torrent.downloadSpeed, torrent.timeRemaining)
+    })
+
+    torrent.on("download", function () {
+      const progress = torrent.progress
+      mainWindow.webContents.send("mainWindow:onTorrentProgress", id, progress)
+    })
+
+    torrent.on("done", function () {
+      mainWindow.webContents.send("mainWindow:onTorrentDone", id)
+      if (fromSubscription) {
+        const todayPath = path.join(path.dirname(downloadPath), "今日更新")
+        mkdirRecursively(todayPath)
+
+        for (const file of torrent.files) {
+          const dstPathWithName = path.join(todayPath, file.name)
+          fs.copyFile(file.path, dstPathWithName, () => {})
+        }
+      }
+    })
+  })
+}
+
+function deleteTorrent(event, id, cleanDelete) {
+  if (id in torrentMap) {
+    torrentMap[id].destroy({destroyStore: cleanDelete})
+    delete torrentMap[id]
   }
 }
