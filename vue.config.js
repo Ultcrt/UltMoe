@@ -26,7 +26,10 @@ module.exports = {
             "from": path.join(__dirname, 'build/icons/16x16.png'),
             "to": './'
           }
-        ]
+        ],
+        win: {
+          icon: "build/icons/icon.ico",
+        },
       }
     },
   }

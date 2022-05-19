@@ -47,8 +47,6 @@ let updateIntervalId
 const tabs = {SubscriptionsTab, DownloadsTab, SettingsTab}
 const currentTab = ref('SubscriptionsTab')
 
-lastAppRunningTimestamp.value = Date.now()
-
 window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, path, fromSubscription)=>{
   if (id in downloads) {
     progress = downloads[id]['progress']
@@ -64,7 +62,9 @@ window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, pat
 })
 
 window.electronAPI.onTorrentProgress((event, id, progress)=>{
-  downloads[id]["progress"] = progress
+  if (downloads[id]["progress"] < 1) {
+    downloads[id]["progress"] = progress
+  }
 })
 
 window.electronAPI.onTorrentDone((event, id)=>{
