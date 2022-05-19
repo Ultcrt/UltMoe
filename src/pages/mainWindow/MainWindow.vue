@@ -37,15 +37,36 @@ import SettingsTab from "@/components/SettingsTab";
 import TabSelector from "@/components/TabSelector";
 import DownloadsTab from "@/components/DownloadsTab"
 import {ref, toRaw, watch} from "vue";
-import {
-  handleUpdateStatus, hourToMs,
-  inTheSameDay
-} from "@/js/globalFuntions";
+import {hourToMs, inTheSameDay} from "@/js/globalFuntions";
 import {settings, subscriptions, lastAppRunningTimestamp, downloads} from "@/js/sharedState";
 
 let updateIntervalId
 const tabs = {SubscriptionsTab, DownloadsTab, SettingsTab}
 const currentTab = ref('SubscriptionsTab')
+
+window.electronAPI.onSubscriptionReady(async (event, id, keywords, pageUrl, torrentUrl) => {
+  if (id in subscriptions) {
+    if (pageUrl !== subscriptions[id]["pageUrl"]) {
+      subscriptions[id]["pageUrl"] = pageUrl
+      subscriptions[id]["updateTime"] = new Date().toLocaleString()
+
+      window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
+    }
+  }
+  else {
+    let name = keywords[0];
+
+    subscriptions[id] = {
+      name,
+      "path": await window.electronAPI.pathJoin(settings.subscriptionPath, name),
+      "keywords": keywords,
+      "updateTime": new Date().toLocaleString(),
+      pageUrl,
+    }
+
+    window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
+  }
+})
 
 window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, path, fromSubscription)=>{
   if (id in downloads) {
@@ -131,33 +152,8 @@ function initDownloads() {
 }
 
 async function updateSubscriptions() {
-  let warningList = []
   for (const id in subscriptions) {
-    const {pageUrl, torrentUrl, status} = await window.electronAPI.updateWithKeywords(
-        toRaw(subscriptions[id]["keywords"])
-    )
-
-    const {isSuccess, warning} = handleUpdateStatus(status, subscriptions[id]["name"])
-
-    if (isSuccess) {
-      if (pageUrl !== subscriptions[id]["pageUrl"]) {
-        window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
-
-        subscriptions[id]["pageUrl"] = pageUrl
-        subscriptions[id]["updateTime"] = new Date().toLocaleString()
-      }
-    }
-    else {
-      warningList.push(warning)
-    }
-  }
-
-  if (warningList.length > 0) {
-    let warningContent = ""
-    for (const warning of warningList) {
-      warningContent += warning+"\n"
-    }
-    window.electronAPI.openWarningDialog(warningContent)
+    window.electronAPI.updateSubscription(id, toRaw(subscriptions[id]["keywords"]))
   }
 
   lastAppRunningTimestamp.value = Date.now()

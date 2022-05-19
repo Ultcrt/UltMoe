@@ -20,46 +20,24 @@
 <script setup>
 import SubscriptionItem from "@/components/SubscriptionItem";
 import InputWithSubmitButton from "@/components/InputWithSubmitButton";
-import {handleUpdateStatus} from "@/js/globalFuntions"
-import {settings, subscriptions} from "@/js/sharedState";
-import {toRaw} from "vue";
+import {subscriptions} from "@/js/sharedState";
 
 async function onKeywordsSubmit(text) {
   if (text.trim() !== "") {
+    const id = Date.now().toString()
     const keywords = text.trim().split(" ")
     const nonemptyKeywords = []
 
-    for(const keyword of keywords) {
+    for (const keyword of keywords) {
       if (keyword !== '' && keyword !== undefined && keyword !== null) {
         nonemptyKeywords.push(keyword)
       }
     }
 
-    if (nonemptyKeywords.length > 0) {
-      const {pageUrl, torrentUrl, status} = await window.electronAPI.updateWithKeywords(nonemptyKeywords)
-      const id = Date.now().toString()
-      let name = nonemptyKeywords[0];
-
-      const {isSuccess, warning} = handleUpdateStatus(status, name)
-
-      if (isSuccess) {
-        subscriptions[id] = {
-          name,
-          "path": await window.electronAPI.pathJoin(settings.subscriptionPath, name),
-          "keywords": nonemptyKeywords,
-          "updateTime": new Date().toLocaleString(),
-          pageUrl,
-        }
-
-        window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
-      }
-      else {
-        window.electronAPI.openWarningDialog(warning)
-      }
-    }
+    window.electronAPI.updateSubscription(id, nonemptyKeywords)
   }
   else {
-    window.electronAPI.openWarningDialog("关键字不能为空")
+    window.electronAPI.openWarningDialog("UltMoe", "关键字不能为空")
   }
 }
 

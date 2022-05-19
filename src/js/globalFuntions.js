@@ -48,14 +48,3 @@ export function hourToMs(hour) {
 export function inTheSameDay(dateA, dateB) {
     return (dateA.getDate() === dateB.getDate()) && (dateA.getMonth() === dateB.getMonth()) && dateA.getFullYear() === dateB.getFullYear()
 }
-
-export function handleUpdateStatus(status, name) {
-    switch (status) {
-        case 0:
-            return { isSuccess: true, warning: "" }
-        case 1:
-            return { isSuccess: false, warning: `订阅"${name}"的搜索结果为空\n` }
-        case 2:
-            return { isSuccess: false, warning: `订阅"${name}"更新时发生网络错误\n` }
-    }
-}

@@ -14,17 +14,11 @@ import schedule from "node-schedule"
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
-const updateStatus = {
-  "SUCCESS": 0,
-  "NOT_FOUND": 1,
-  "NETWORK_ERROR": 2
-}
-
 const torrentClient = new WebTorrent()
 
 const torrentMap = {}
 
-let mainWindow;
+let mainWindow
 
 let job = schedule.scheduleJob('0 0 1 1 *', function(){})
 
@@ -190,7 +184,7 @@ async function createWindow() {
     }
   })
 
-  ipcMain.handle("mainWindow:updateWithKeywords", (event, keywords)=>{
+  ipcMain.on("mainWindow:updateSubscription", (event, id, keywords)=>{
     const baseUrl = "https://www.dmhy.org"
     let searchUrl = "/topics/list?keyword="
     const config = {
@@ -205,39 +199,38 @@ async function createWindow() {
       searchUrl += keyword + '+'
     }
 
-    return new Promise((resolve) => {
-      axios.get(encodeURI(searchUrl), config).then((response) => {
-        if (response.status === 200) {
-          const $ = cheerio.load(response.data)
-          const targetUrl = $("#topic_list").find("tbody:first").find("tr:first")
-              .find(".title").find("a[target='_blank']").attr("href")
+    axios.get(encodeURI(searchUrl), config).then((response) => {
+      if (response.status === 200) {
+        const $ = cheerio.load(response.data)
+        const targetUrl = $("#topic_list").find("tbody:first").find("tr:first")
+            .find(".title").find("a[target='_blank']").attr("href")
 
-          if (targetUrl) {
-            axios.get(encodeURI(targetUrl), config).then((response) => {
-              if (response.status === 200) {
-                const $ = cheerio.load(response.data)
-                const targetTorrentUrl = "https:" + $("#tabs-1").find("a:first").attr("href")
-                const targetPageUrl = baseUrl + targetUrl
-                resolve({
-                  "pageUrl": targetPageUrl,
-                  "torrentUrl": targetTorrentUrl,
-                  "status": updateStatus.SUCCESS
-                })
-              }
-            }).catch(()=>resolve({"status": updateStatus.NETWORK_ERROR}))
-          }
-          else {
-            resolve({"status": updateStatus.NOT_FOUND})
-          }
+        if (targetUrl) {
+          axios.get(encodeURI(targetUrl), config).then((response) => {
+            if (response.status === 200) {
+              const $ = cheerio.load(response.data)
+              const targetTorrentUrl = "https:" + $("#tabs-1").find("a:first").attr("href")
+              const targetPageUrl = baseUrl + targetUrl
+
+              mainWindow.webContents.send("mainWindow:onSubscriptionReady", id, keywords, targetPageUrl, targetTorrentUrl)
+            }
+          }).catch(()=>{
+            openWarningDialog("UltMoe", `订阅"${keywords[0]}"更新时发生网络错误\n`)
+          })
         }
-      }).catch(()=>resolve({"status": updateStatus.NETWORK_ERROR}))
+        else {
+          openWarningDialog("UltMoe", `订阅"${keywords[0]}"的搜索结果为空\n`)
+        }
+      }
+    }).catch(()=> {
+      openWarningDialog("UltMoe", `订阅"${keywords[0]}"更新时发生网络错误\n`)
     })
   })
 
   ipcMain.on("mainWindow:addTorrent", addTorrent)
 
-  ipcMain.on("mainWindow:openWarningDialog", async (event, textContent) => {
-    await openWarningDialog("UltMoe", textContent)
+  ipcMain.on("mainWindow:openWarningDialog", async (event, title, body) => {
+    await openWarningDialog(title, body)
   })
 
   ipcMain.on("mainWindow:deleteTorrent", deleteTorrent)
@@ -313,10 +306,10 @@ async function openWarningDialog(title, body) {
 
     styledDialog.removeMenu()
 
-    ipcMain.on("styledDialog:closeDialog", (event) => {
-      if (event.sender.id === styledDialog.webContents.id) {
-        styledDialog.destroy()
-      }
+    ipcMain.on("styledDialog:closeDialog", () => {
+      ipcMain.removeAllListeners("styledDialog:closeDialog")
+      ipcMain.removeAllListeners("styledDialog:dialogLoaded")
+      styledDialog.destroy()
     })
 
     ipcMain.on("styledDialog:dialogLoaded", (event)=>{
