@@ -83,7 +83,7 @@ window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, pat
 })
 
 window.electronAPI.onTorrentProgress((event, id, progress)=>{
-  if (downloads[id]["progress"] < 1) {
+  if (progress < 1) {
     downloads[id]["progress"] = progress
   }
 })

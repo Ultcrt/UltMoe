@@ -15,7 +15,7 @@ export const settings = reactive(getSettings())
     "id": {
         "name": "...",
         "torrent": "...",
-        "progress": "...",
+        "progress": 1.0,
         "size": 100.0,
         "path": "...",
         "fromSubscription": false
@@ -27,7 +27,7 @@ export const downloads = reactive(getDownloads())
     "id": {
         "name": "...",
         "path": "...",
-        "keywords": [...],
+        "keywords": ["...", "..."],
         "pageUrl": "...",
         "updateTime": "...",
     }
