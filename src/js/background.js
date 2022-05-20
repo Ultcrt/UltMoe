@@ -359,14 +359,8 @@ function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadP
     })
 
     torrent.on("download", function () {
-      const progress = torrent.progress
-      mainWindow.webContents.send("mainWindow:onTorrentProgress", id, progress)
+      mainWindow.webContents.send("mainWindow:onTorrentProgress", id, torrent.progress)
       mainWindow.webContents.send("mainWindow:onTorrentDownload", id, torrent.downloadSpeed, torrent.timeRemaining)
-    })
-
-    torrent.on("download", function () {
-      const progress = torrent.progress
-      mainWindow.webContents.send("mainWindow:onTorrentProgress", id, progress)
     })
 
     torrent.on("done", function () {
