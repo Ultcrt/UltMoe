@@ -185,7 +185,7 @@ async function createWindow() {
   })
 
   ipcMain.on("mainWindow:updateSubscription", (event, id, keywords)=>{
-    const baseUrl = "https://www.dmhy.org"
+    const baseUrl = "https://share.dmhy.org"
     let searchUrl = "/topics/list?keyword="
     const config = {
       baseURL: baseUrl,
