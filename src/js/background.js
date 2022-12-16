@@ -22,6 +22,8 @@ let mainWindow
 
 let job = schedule.scheduleJob('0 0 1 1 *', function(){})
 
+let axiosProxyAddress = null
+
 const gotTheSingleLock = app.requestSingleInstanceLock()
 
 if (gotTheSingleLock) {
@@ -193,6 +195,11 @@ async function createWindow() {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39"
       },
       httpsAgent: new https.Agent({ keepAlive: true }),
+      proxy: axiosProxyAddress ? {
+        protocol: "http",
+        host: axiosProxyAddress.host,
+        port: axiosProxyAddress.port
+      } : undefined
     }
 
     for (const keyword of keywords) {
@@ -261,6 +268,20 @@ async function createWindow() {
     job = schedule.scheduleJob(`${clearTodayMinute} ${clearTodayHour} * * *`, function () {
       fs.rmSync(path.join(subscriptionPath, "今日更新"), { recursive: true, force: true });
     })
+  })
+
+  ipcMain.on("mainWindow:setProxyAddress", (event, proxyAddress) => {
+    let tmp = proxyAddress.split(":", 2)
+
+    if (tmp.length === 2) {
+      axiosProxyAddress = {
+        host: tmp[0],
+        port: tmp[1]
+      }
+    }
+    else {
+      axiosProxyAddress = null
+    }
   })
 
   ipcMain.on("mainWindow:getSystemDownloadPath", (event) => {

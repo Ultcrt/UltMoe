@@ -27,7 +27,8 @@ export function getSettings() {
             "pollingInterval": 5,
             "clearTodayTime": { "hour": 0, "minute": 0},
             "downloadPath": window.electronAPI.getSystemDownloadPath(),
-            "subscriptionPath": window.electronAPI.getSystemDownloadPath()
+            "subscriptionPath": window.electronAPI.getSystemDownloadPath(),
+            "proxyAddress": ""
         }
     }
 }

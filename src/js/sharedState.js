@@ -6,8 +6,9 @@ import {getLastAppRunningTimestamp, getDownloads, getSettings, getSubscriptions}
     "cleanDelete": false,
     "pollingInterval": 5,
     "clearTodayTime": { "hour": 0, "minute": 0},
-    "downloadPath": "..."
-    "subscriptionPath": "..."
+    "downloadPath": "...",
+    "subscriptionPath": "...",
+    "proxyAddress": "..."
 }*/
 export const settings = reactive(getSettings())
 
@@ -49,5 +50,5 @@ watch(subscriptions, (newSubscriptions)=>{
 })
 
 watch(lastAppRunningTimestamp, (newTimestamp)=>{
-    localStorage.setItem("lastAppRunningTimestamp", newTimestamp)
+    localStorage.setItem("lastAppRunningTimestamp", newTimestamp.toString())
 })

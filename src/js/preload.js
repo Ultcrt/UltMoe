@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     resumeTorrent: (id, torrentId, fromSubscription, downloadPath) => ipcRenderer.send("mainWindow:resumeTorrent", id, torrentId, fromSubscription, downloadPath),
     setRunAtStartup: (flag) => ipcRenderer.send("mainWindow:setRunAtStartup", flag),
     setClearTodayTime: (clearTodayHour, clearTodayMinute, subscriptionPath) => ipcRenderer.send("mainWindow:setClearTodayTime", clearTodayHour, clearTodayMinute, subscriptionPath),
+    setProxyAddress: (proxyAddress) => ipcRenderer.send("mainWindow:setProxyAddress", proxyAddress),
     dialogLoaded: () => ipcRenderer.send("styledDialog:dialogLoaded"),
     closeDialog: () => ipcRenderer.send("styledDialog:closeDialog"),
     onInitTextContent: (callback) => ipcRenderer.on("styledDialog:onInitTextContent", callback),

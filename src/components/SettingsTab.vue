@@ -20,7 +20,7 @@
         <input
             :value="settings.pollingInterval"
             @input="onIntervalInput"
-            id="pollingIntervalNumber" class="settingNumber typeArea" type="number"
+            id="pollingIntervalNumber" class="settingText typeArea" type="number"
         />
       </div>
       <div class="settingItem">
@@ -39,6 +39,13 @@
         <label for="subscriptionPathPicker">订阅路径</label>
         <PathPicker id="subscriptionPathPicker" :defaultPath="settings.subscriptionPath" @submit="onSubscriptionPathSubmit"/>
       </div>
+      <div class="settingItem">
+        <label for="proxyAddress">代理地址</label>
+        <input
+            v-model="settings.proxyAddress"
+            id="proxyAddress" class="settingText typeArea"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -51,6 +58,10 @@ import PathPicker from "@/components/PathPicker";
 
 watch(()=>settings.runAtStartup, (flag)=>{
   window.electronAPI.setRunAtStartup(flag)
+})
+
+watch(()=>settings.proxyAddress, (flag)=>{
+  window.electronAPI.setProxyAddress(flag)
 })
 
 function onIntervalInput(event){
@@ -112,15 +123,22 @@ function onSubscriptionPathSubmit(path) {
   accent-color: indianred;
 }
 
-.settingNumber {
+.settingText {
   height: 20px;
-  width: 40px;
   border: none;
   border-radius: 10px;
   text-align: center;
 }
 
-.settingNumber:focus {
+.settingText:focus {
   outline-color: indianred;
+}
+
+#pollingIntervalNumber {
+  width: 40px;
+}
+
+#proxyAddress {
+  width: 40%
 }
 </style>

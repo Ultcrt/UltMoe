@@ -99,6 +99,8 @@ window.electronAPI.onTorrentDone((event, id)=>{
   }
 })
 
+window.electronAPI.setProxyAddress(settings.proxyAddress)
+
 initClearToday()
 
 initDownloads()
@@ -147,7 +149,9 @@ function initClearToday() {
 
 function initDownloads() {
   for (const id in downloads) {
-    window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']))
+    if (downloads[id]["progress"] < 1) {
+      window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']))
+    }
   }
 }
 
