@@ -101,6 +101,8 @@ window.electronAPI.onTorrentDone((event, id)=>{
 
 window.electronAPI.setProxyAddress(settings.proxyAddress)
 
+window.electronAPI.setTrackersSubscriptionAddress(settings.trackersSubscriptionAddress)
+
 initClearToday()
 
 initDownloads()

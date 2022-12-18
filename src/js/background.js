@@ -11,6 +11,8 @@ import path from 'path'
 import WebTorrent from "webtorrent"
 import https from "https"
 import schedule from "node-schedule"
+import parseTorrent from "parse-torrent";
+import http from "http";
 
 const isDevelopment = process.env.NODE_ENV !== 'production'
 
@@ -20,9 +22,13 @@ const torrentMap = {}
 
 let mainWindow
 
-let job = schedule.scheduleJob('0 0 1 1 *', function(){})
+let clearTodayJob = schedule.scheduleJob('0 0 1 1 *', function(){})
 
-let axiosProxyAddress = null
+let trackersUpdateJob = schedule.scheduleJob('0 0 * * *', function(){})
+
+let globalProxyAddress = null
+
+let trackers = []
 
 const gotTheSingleLock = app.requestSingleInstanceLock()
 
@@ -195,10 +201,11 @@ async function createWindow() {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39"
       },
       httpsAgent: new https.Agent({ keepAlive: true }),
-      proxy: axiosProxyAddress ? {
+      httpAgent: new http.Agent({ keepAlive: true }),
+      proxy: globalProxyAddress ? {
         protocol: "http",
-        host: axiosProxyAddress.host,
-        port: axiosProxyAddress.port
+        host: globalProxyAddress.host,
+        port: globalProxyAddress.port
       } : undefined
     }
 
@@ -264,8 +271,8 @@ async function createWindow() {
   })
 
   ipcMain.on("mainWindow:setClearTodayTime", (event, clearTodayHour, clearTodayMinute, subscriptionPath) => {
-    job.cancel()
-    job = schedule.scheduleJob(`${clearTodayMinute} ${clearTodayHour} * * *`, function () {
+    clearTodayJob.cancel()
+    clearTodayJob = schedule.scheduleJob(`${clearTodayMinute} ${clearTodayHour} * * *`, function () {
       fs.rmSync(path.join(subscriptionPath, "今日更新"), { recursive: true, force: true });
     })
   })
@@ -274,14 +281,23 @@ async function createWindow() {
     let tmp = proxyAddress.split(":", 2)
 
     if (tmp.length === 2) {
-      axiosProxyAddress = {
+      globalProxyAddress = {
         host: tmp[0],
         port: tmp[1]
       }
     }
     else {
-      axiosProxyAddress = null
+      globalProxyAddress = null
     }
+  })
+
+  ipcMain.on("mainWindow:setTrackersSubscriptionAddress", (event, trackersSubscriptionAddress) => {
+    fetchTrackersList(trackersSubscriptionAddress);
+
+    trackersUpdateJob.cancel()
+    trackersUpdateJob = schedule.scheduleJob("0 0 * * *", function () {
+      fetchTrackersList(trackersSubscriptionAddress)
+    })
   })
 
   ipcMain.on("mainWindow:getSystemDownloadPath", (event) => {
@@ -352,11 +368,39 @@ async function openWarningDialog(title, body) {
   }
 }
 
-function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadPath) {
+async function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadPath) {
   let torrentTarget
 
   if (isRestore) {
     torrentTarget = Buffer.from(torrentId, "base64")
+  }
+  else if (torrentId.startsWith("http")) {
+    // web-torrent can add url, but cannot use proxy, so load url before add
+    const config = {
+      baseURL: torrentId,
+      responseType: "arraybuffer",
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39"
+      },
+      httpsAgent: new https.Agent({ keepAlive: true }),
+      httpAgent: new http.Agent({ keepAlive: true }),
+      proxy: globalProxyAddress ? {
+        protocol: "http",
+        host: globalProxyAddress.host,
+        port: globalProxyAddress.port
+      } : undefined
+    }
+
+    let response = await axios.get("", config).catch(()=> {
+      openWarningDialog("UltMoe", `获取种子文件时发生网络错误\n`)
+    })
+
+    if (response && response.status === 200) {
+      torrentTarget = parseTorrent(response.data)
+    }
+    else {
+      return
+    }
   }
   else {
     torrentTarget = torrentId
@@ -364,9 +408,11 @@ function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadP
 
   mkdirRecursively(downloadPath)
 
+  console.log(torrentTarget)
+
   torrentMap[id] = torrentClient.add(torrentTarget, {
     "path": downloadPath,
-    "announce": "https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_all.txt"
+    "announce": trackers
   }, function (torrent) {
     // ontorrent callback is invoked on torrent ready event
     mainWindow.webContents.send(
@@ -403,5 +449,35 @@ function deleteTorrent(event, id, cleanDelete) {
   if (id in torrentMap) {
     torrentMap[id].destroy({destroyStore: cleanDelete})
     delete torrentMap[id]
+  }
+}
+
+function fetchTrackersList(trackersSubscriptionAddress) {
+  if (trackersSubscriptionAddress !== "") {
+    const config = {
+      baseURL: trackersSubscriptionAddress,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.75 Safari/537.36 Edg/100.0.1185.39"
+      },
+      httpsAgent: new https.Agent({ keepAlive: true }),
+      httpAgent: new http.Agent({ keepAlive: true }),
+      proxy: globalProxyAddress ? {
+        protocol: "http",
+        host: globalProxyAddress.host,
+        port: globalProxyAddress.port
+      } : undefined
+    }
+
+    axios.get("", config).then((response) => {
+      if (response.status === 200) {
+        for (let tracker of response.data.split("\n")) {
+          if (tracker.length !== 0) {
+            trackers.push(tracker)
+          }
+        }
+      }
+    }).catch(()=> {
+      openWarningDialog("UltMoe", `更新Trackers时发生网络错误\n`)
+    })
   }
 }

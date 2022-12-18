@@ -41,9 +41,20 @@
       </div>
       <div class="settingItem">
         <label for="proxyAddress">代理地址</label>
+        <!--v-model is triggered by every letter-->
         <input
-            v-model="settings.proxyAddress"
-            id="proxyAddress" class="settingText typeArea"
+            :value="settings.proxyAddress"
+            @change="onProxyAddressChanged"
+            id="proxyAddress" class="settingText settingUrl typeArea"
+        />
+      </div>
+      <div class="settingItem">
+        <label for="proxyAddress">Trackers订阅地址</label>
+        <!--v-model is triggered by every letter-->
+        <input
+            :value="settings.trackersSubscriptionAddress"
+            @change="onTrackersSubscriptionAddressChanged"
+            id="proxyAddress" class="settingText settingUrl typeArea"
         />
       </div>
     </div>
@@ -60,9 +71,15 @@ watch(()=>settings.runAtStartup, (flag)=>{
   window.electronAPI.setRunAtStartup(flag)
 })
 
-watch(()=>settings.proxyAddress, (flag)=>{
-  window.electronAPI.setProxyAddress(flag)
-})
+function onProxyAddressChanged(event) {
+  settings.proxyAddress = event.target.value
+  window.electronAPI.setProxyAddress(settings.proxyAddress)
+}
+
+function onTrackersSubscriptionAddressChanged(event) {
+  settings.trackersSubscriptionAddress = event.target.value
+  window.electronAPI.setTrackersSubscriptionAddress(settings.trackersSubscriptionAddress)
+}
 
 function onIntervalInput(event){
   if (event.target.value < 1) {
@@ -138,7 +155,7 @@ function onSubscriptionPathSubmit(path) {
   width: 40px;
 }
 
-#proxyAddress {
+.settingUrl {
   width: 40%
 }
 </style>

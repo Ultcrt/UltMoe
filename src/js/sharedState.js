@@ -8,7 +8,8 @@ import {getLastAppRunningTimestamp, getDownloads, getSettings, getSubscriptions}
     "clearTodayTime": { "hour": 0, "minute": 0},
     "downloadPath": "...",
     "subscriptionPath": "...",
-    "proxyAddress": "..."
+    "proxyAddress": "...",
+    "trackersSubscriptionAddress": "..."
 }*/
 export const settings = reactive(getSettings())
 

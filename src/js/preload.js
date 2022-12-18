@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     setRunAtStartup: (flag) => ipcRenderer.send("mainWindow:setRunAtStartup", flag),
     setClearTodayTime: (clearTodayHour, clearTodayMinute, subscriptionPath) => ipcRenderer.send("mainWindow:setClearTodayTime", clearTodayHour, clearTodayMinute, subscriptionPath),
     setProxyAddress: (proxyAddress) => ipcRenderer.send("mainWindow:setProxyAddress", proxyAddress),
+    setTrackersSubscriptionAddress: (trackersSubscriptionAddress) => ipcRenderer.send("mainWindow:setTrackersSubscriptionAddress", trackersSubscriptionAddress),
     dialogLoaded: () => ipcRenderer.send("styledDialog:dialogLoaded"),
     closeDialog: () => ipcRenderer.send("styledDialog:closeDialog"),
     onInitTextContent: (callback) => ipcRenderer.on("styledDialog:onInitTextContent", callback),

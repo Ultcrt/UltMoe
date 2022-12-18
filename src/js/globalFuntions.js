@@ -28,7 +28,8 @@ export function getSettings() {
             "clearTodayTime": { "hour": 0, "minute": 0},
             "downloadPath": window.electronAPI.getSystemDownloadPath(),
             "subscriptionPath": window.electronAPI.getSystemDownloadPath(),
-            "proxyAddress": ""
+            "proxyAddress": "",
+            "trackersSubscriptionAddress": ""
         }
     }
 }
