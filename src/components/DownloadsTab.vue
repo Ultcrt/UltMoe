@@ -114,7 +114,7 @@ function updateInfo(newDownloads) {
 function onDownloadSubmit(url) {
   const id = Date.now().toString()
 
-  window.electronAPI.addTorrent(id, url, false, false,  toRaw(settings.downloadPath))
+  window.electronAPI.addTorrent(id, url, false, false,  toRaw(settings.downloadPath), undefined)
 }
 
 function onDelete(targetId) {

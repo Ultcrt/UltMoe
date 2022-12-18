@@ -78,7 +78,7 @@ window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, pat
   }
 
   // If fromSubscription then the download has the same id as its subscription
-  if (fromSubscription) {
+  if (fromSubscription && pageUrl !== undefined) {
     // Update subscription info. Update here can guarantee torrent is successfully loaded.
     subscriptions[id]["pageUrl"] = pageUrl
     subscriptions[id]["updateTime"] = new Date().toLocaleString()
@@ -147,7 +147,11 @@ function initClearToday() {
 
 function initDownloads() {
   for (const id in downloads) {
-    window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']))
+    let pageUrl = ""
+    if (downloads[id]["fromSubscription"]) {
+      pageUrl = subscriptions[id]["pageUrl"]
+    }
+    window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']), pageUrl)
   }
 }
 

@@ -267,7 +267,7 @@ async function createWindow() {
   })
 
   ipcMain.on("mainWindow:resumeTorrent", (event, id, torrentId, fromSubscription, downloadPath)=>{
-    addTorrent(event, id, torrentId, true, fromSubscription, downloadPath)
+    addTorrent(event, id, torrentId, true, fromSubscription, downloadPath, undefined)
   })
 
   ipcMain.on("mainWindow:setRunAtStartup", (event, flag) => {
@@ -383,7 +383,7 @@ async function openWarningDialog(title, body) {
 
 async function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadPath, pageUrl) {
   let torrentTarget
-
+  
   if (isRestore) {
     torrentTarget = Buffer.from(torrentId, "base64")
   }
