@@ -37,22 +37,24 @@ const info = reactive({})
 updateInfo(downloads)
 watch(downloads, updateInfo)
 
-window.electronAPI.onTorrentDownload((event, id, downloadSpeed, timeRemaining, progress)=>{
-  let result = getSpeedWithUnit(downloadSpeed)
-  info[id]['downloadSpeed']["value"] = result.value
-  info[id]['downloadSpeed']["unit"] = result.unit
+window.electronAPI.onTorrentTransmittingInfoUpdated((event, torrentTransmittingInfo)=>{
+  for (let id in torrentTransmittingInfo) {
+    if (id in info) {
+      let result = getSpeedWithUnit(torrentTransmittingInfo[id]["downloadSpeed"])
+      info[id]['downloadSpeed']["value"] = result.value
+      info[id]['downloadSpeed']["unit"] = result.unit
 
-  result = getTimeWithUnit(timeRemaining)
-  info[id]['timeRemaining']["value"] = result.value
-  info[id]['timeRemaining']["unit"] = result.unit
+      result = getSpeedWithUnit(torrentTransmittingInfo[id]["uploadSpeed"])
+      info[id]['uploadSpeed']["value"] = result.value
+      info[id]['uploadSpeed']["unit"] = result.unit
 
-  info[id]['progress'] = progress
-})
+      result = getTimeWithUnit(torrentTransmittingInfo[id]["timeRemaining"])
+      info[id]['timeRemaining']["value"] = result.value
+      info[id]['timeRemaining']["unit"] = result.unit
 
-window.electronAPI.onTorrentUpload((event, id, uploadSpeed)=>{
-  let result = getSpeedWithUnit(uploadSpeed)
-  info[id]['uploadSpeed']["value"] = result.value
-  info[id]['uploadSpeed']["unit"] = result.unit
+      info[id]['progress'] = torrentTransmittingInfo[id]["progress"]
+    }
+  }
 })
 
 function getSpeedWithUnit(speed) {

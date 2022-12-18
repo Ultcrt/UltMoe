@@ -32,6 +32,8 @@ let trackers = []
 
 const gotTheSingleLock = app.requestSingleInstanceLock()
 
+let torrentTransmittingInfo = {}
+
 if (gotTheSingleLock) {
   app.on("second-instance", () => {
     if (mainWindow) {
@@ -111,6 +113,11 @@ torrentClient.on("error", function (err){
     openWarningDialog("UltMoe", "种子已位于下载队列中")
   }
 })
+
+// To avoid too many IPCs in download page, use one object to store all torrent transmitting info and call IPC at a fixed rate
+setInterval(function (){
+  mainWindow.webContents.send("mainWindow:onTorrentTransmittingInfoUpdated", torrentTransmittingInfo)
+}, 1000)
 
 function mkdirRecursively(path) {
   if (!fs.existsSync(path)){
@@ -425,12 +432,16 @@ async function addTorrent(event, id, torrentId, isRestore, fromSubscription, dow
         torrent.length, downloadPath, fromSubscription
     )
 
+    torrentTransmittingInfo[id] = {}
+
     torrent.on("upload", function () {
-      mainWindow.webContents.send("mainWindow:onTorrentUpload", id, torrent.uploadSpeed)
+      torrentTransmittingInfo[id]["uploadSpeed"] = torrent.uploadSpeed
     })
 
     torrent.on("download", function () {
-      mainWindow.webContents.send("mainWindow:onTorrentDownload", id, torrent.downloadSpeed, torrent.timeRemaining, torrent.progress)
+      torrentTransmittingInfo[id]["downloadSpeed"] = torrent.downloadSpeed
+      torrentTransmittingInfo[id]["timeRemaining"] = torrent.timeRemaining
+      torrentTransmittingInfo[id]["progress"] = torrent.progress
     })
 
     torrent.on("done", function () {
