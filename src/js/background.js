@@ -377,7 +377,7 @@ async function openWarningDialog(title, body) {
       await styledDialog.loadURL('app://./styledDialog.html')
     }
   } else {
-    new Notification({title, body}).show()
+    new Notification({title, "body": body.replace("<br/>", "\n")}).show()
   }
 }
 
