@@ -213,6 +213,8 @@ async function createWindow() {
       searchUrl += keyword + '+'
     }
 
+    let waringMessage = ""
+
     axios.get(encodeURI(searchUrl), config).then((response) => {
       if (response.status === 200) {
         const $ = cheerio.load(response.data)
@@ -229,16 +231,20 @@ async function createWindow() {
               mainWindow.webContents.send("mainWindow:onSubscriptionReady", id, keywords, targetPageUrl, targetTorrentUrl)
             }
           }).catch(()=>{
-            openWarningDialog("UltMoe", `订阅"${keywords[0]}"更新时发生网络错误\n`)
+            waringMessage += `订阅"${keywords[0]}"更新时发生网络错误<br/>`
           })
         }
         else {
-          openWarningDialog("UltMoe", `订阅"${keywords[0]}"的搜索结果为空\n`)
+          waringMessage += `订阅"${keywords[0]}"的搜索结果为空<br/>`
         }
       }
     }).catch(()=> {
-      openWarningDialog("UltMoe", `订阅"${keywords[0]}"更新时发生网络错误\n`)
+      waringMessage += `订阅"${keywords[0]}"更新时发生网络错误<br/>`
     })
+
+    if (waringMessage !== "") {
+      openWarningDialog("UltMoe", waringMessage)
+    }
   })
 
   ipcMain.on("mainWindow:addTorrent", addTorrent)
@@ -392,7 +398,7 @@ async function addTorrent(event, id, torrentId, isRestore, fromSubscription, dow
     }
 
     let response = await axios.get("", config).catch(()=> {
-      openWarningDialog("UltMoe", `获取种子文件时发生网络错误\n`)
+      openWarningDialog("UltMoe", `获取种子文件时发生网络错误<br/>`)
     })
 
     if (response && response.status === 200) {
@@ -477,7 +483,7 @@ function fetchTrackersList(trackersSubscriptionAddress) {
         }
       }
     }).catch(()=> {
-      openWarningDialog("UltMoe", `更新Trackers时发生网络错误\n`)
+      openWarningDialog("UltMoe", `更新Trackers时发生网络错误<br/>`)
     })
   }
 }

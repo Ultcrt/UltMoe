@@ -8,7 +8,9 @@
     </div>
     <div id="messageArea">
       <label id="warningIcon">⚠</label>
-      <p id="messageBox" class="banDrag">{{ dialogBody }}</p>
+      <p id="messageBox" class="banDrag">
+        <span v-html="dialogBody"/>
+      </p>
     </div>
   </div>
 </template>
