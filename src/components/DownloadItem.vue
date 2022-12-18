@@ -9,7 +9,7 @@
     </div>
     <div class="downloadCell progress">
       <div class="downloadProgress">
-        <ProgressBar :progress="downloads[props.downloadId]['progress']" />
+        <ProgressBar :progress="props.progress" />
       </div>
     </div>
     <div class="downloadCell downloadSpeed">
@@ -40,7 +40,7 @@ import LabelWithUnit from "@/components/LabelWithUnit";
 
 const emit = defineEmits(['delete', 'pause'])
 
-const props = defineProps(["downloadId", "downloadSpeed", "uploadSpeed", "timeRemaining"])
+const props = defineProps(["downloadId", "downloadSpeed", "uploadSpeed", "timeRemaining", "progress"])
 
 function onUrlClick(event) {
   event.preventDefault()

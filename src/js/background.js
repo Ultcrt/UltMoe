@@ -414,8 +414,6 @@ async function addTorrent(event, id, torrentId, isRestore, fromSubscription, dow
 
   mkdirRecursively(downloadPath)
 
-  console.log(torrentTarget)
-
   torrentMap[id] = torrentClient.add(torrentTarget, {
     "path": downloadPath,
     "announce": trackers
@@ -432,8 +430,7 @@ async function addTorrent(event, id, torrentId, isRestore, fromSubscription, dow
     })
 
     torrent.on("download", function () {
-      mainWindow.webContents.send("mainWindow:onTorrentProgress", id, torrent.progress)
-      mainWindow.webContents.send("mainWindow:onTorrentDownload", id, torrent.downloadSpeed, torrent.timeRemaining)
+      mainWindow.webContents.send("mainWindow:onTorrentDownload", id, torrent.downloadSpeed, torrent.timeRemaining, torrent.progress)
     })
 
     torrent.on("done", function () {

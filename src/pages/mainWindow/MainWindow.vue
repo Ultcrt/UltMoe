@@ -69,29 +69,21 @@ window.electronAPI.onSubscriptionReady(async (event, id, keywords, pageUrl, torr
 })
 
 window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, path, fromSubscription)=>{
-  if (id in downloads) {
-    progress = downloads[id]['progress']
-  }
-  downloads[id] = {
-    name,
-    torrent,
-    progress,
-    size,
-    path,
-    fromSubscription
-  }
-})
-
-window.electronAPI.onTorrentProgress((event, id, progress)=>{
-  if (progress < 1) {
-    downloads[id]["progress"] = progress
+  if (!downloads[id]) {
+    downloads[id] = {
+      name,
+      torrent,
+      size,
+      path,
+      fromSubscription,
+      "isDone": false
+    }
   }
 })
 
 window.electronAPI.onTorrentDone((event, id)=>{
-  if (downloads[id]["progress"] < 1) {
-    downloads[id]["progress"] = 1
-
+  if (!downloads[id]["isDone"]) {
+    downloads[id]["isDone"] = true
     new Notification(
         `"${downloads[id]["name"]}"已完成下载`,
         { body: `位置：${downloads[id]["path"]}` }
@@ -151,7 +143,7 @@ function initClearToday() {
 
 function initDownloads() {
   for (const id in downloads) {
-    if (downloads[id]["progress"] < 1) {
+    if (!downloads[id]["isDone"]) {
       window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']))
     }
   }

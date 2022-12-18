@@ -20,7 +20,8 @@ export const settings = reactive(getSettings())
         "progress": 1.0,
         "size": 100.0,
         "path": "...",
-        "fromSubscription": false
+        "fromSubscription": false,
+        "isDone": false
     }
 }*/
 export const downloads = reactive(getDownloads())

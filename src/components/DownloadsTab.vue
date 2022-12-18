@@ -9,6 +9,7 @@
             :downloadSpeed="info[key]['downloadSpeed']"
             :uploadSpeed="info[key]['uploadSpeed']"
             :timeRemaining="info[key]['timeRemaining']"
+            :progress="info[key]['progress']"
             @delete="onDelete"
             @pause="onPause"
         />
@@ -36,7 +37,7 @@ const info = reactive({})
 updateInfo(downloads)
 watch(downloads, updateInfo)
 
-window.electronAPI.onTorrentDownload((event, id, downloadSpeed, timeRemaining)=>{
+window.electronAPI.onTorrentDownload((event, id, downloadSpeed, timeRemaining, progress)=>{
   let result = getSpeedWithUnit(downloadSpeed)
   info[id]['downloadSpeed']["value"] = result.value
   info[id]['downloadSpeed']["unit"] = result.unit
@@ -44,6 +45,8 @@ window.electronAPI.onTorrentDownload((event, id, downloadSpeed, timeRemaining)=>
   result = getTimeWithUnit(timeRemaining)
   info[id]['timeRemaining']["value"] = result.value
   info[id]['timeRemaining']["unit"] = result.unit
+
+  info[id]['progress'] = progress
 })
 
 window.electronAPI.onTorrentUpload((event, id, uploadSpeed)=>{
@@ -96,6 +99,7 @@ function updateInfo(newDownloads) {
         "downloadSpeed": {"value": "0.0", "unit": "B/s"},
         "uploadSpeed": {"value": "0.0", "unit": "B/s"},
         "timeRemaining": {"value": "0.0", "unit": "s"},
+        "progress": downloads[id]["isDone"] ? 1 : 0
       }
     }
   }
@@ -117,6 +121,7 @@ function onPause(targetId) {
     "downloadSpeed": {"value": "0.0", "unit": "B/s"},
     "uploadSpeed": {"value": "0.0", "unit": "B/s"},
     "timeRemaining": {"value": "0.0", "unit": "s"},
+    "progress": info[targetId]["progress"]
   }
 }
 </script>

@@ -10,7 +10,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
     onSubscriptionReady: (callback) => ipcRenderer.on("mainWindow:onSubscriptionReady", callback),
     addTorrent: (id, torrentId, isRestore, fromSubscription, downloadPath) => ipcRenderer.send("mainWindow:addTorrent", id, torrentId, isRestore, fromSubscription, downloadPath),
     onTorrentReady: (callback) => ipcRenderer.on("mainWindow:onTorrentReady", callback),
-    onTorrentProgress: (callback) => ipcRenderer.on("mainWindow:onTorrentProgress", callback),
     onTorrentDownload: (callback) => ipcRenderer.on("mainWindow:onTorrentDownload", callback),
     onTorrentUpload: (callback) => ipcRenderer.on("mainWindow:onTorrentUpload", callback),
     onTorrentDone: (callback) => ipcRenderer.on("mainWindow:onTorrentDone", callback),
