@@ -54,7 +54,7 @@ window.electronAPI.onTorrentTransmittingInfoUpdated((event, torrentTransmittingI
 
       info[id]['progress'] = torrentTransmittingInfo[id]["progress"]
 
-      if (downloads[id]["isDone"]) {
+      if (downloads[id]["isDone"] && info[id]['progress'] < 1) {
         downloads[id]["isDone"] = false
       }
     }

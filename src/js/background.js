@@ -116,7 +116,17 @@ torrentClient.on("error", function (err){
 
 // To avoid too many IPCs in download page, use one object to store all torrent transmitting info and call IPC at a fixed rate
 setInterval(function (){
-  mainWindow.webContents.send("mainWindow:onTorrentTransmittingInfoUpdated", torrentTransmittingInfo)
+  let filteredInfo = {}
+
+  for (let key in torrentTransmittingInfo) {
+    if (Object.keys(torrentTransmittingInfo[key]).length === 4) {
+      filteredInfo[key] = torrentTransmittingInfo[key]
+    }
+  }
+
+  if (Object.keys(filteredInfo).length !== 0) {
+    mainWindow.webContents.send("mainWindow:onTorrentTransmittingInfoUpdated", filteredInfo)
+  }
 }, 1000)
 
 function mkdirRecursively(path) {
@@ -383,7 +393,7 @@ async function openWarningDialog(title, body) {
 
 async function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadPath, pageUrl) {
   let torrentTarget
-  
+
   if (isRestore) {
     torrentTarget = Buffer.from(torrentId, "base64")
   }
