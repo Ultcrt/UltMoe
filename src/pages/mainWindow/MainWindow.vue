@@ -47,10 +47,7 @@ const currentTab = ref('SubscriptionsTab')
 window.electronAPI.onSubscriptionReady(async (event, id, keywords, pageUrl, torrentUrl) => {
   if (id in subscriptions) {
     if (pageUrl !== subscriptions[id]["pageUrl"]) {
-      subscriptions[id]["pageUrl"] = pageUrl
-      subscriptions[id]["updateTime"] = new Date().toLocaleString()
-
-      window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
+      window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']), pageUrl)
     }
   }
   else {
@@ -60,15 +57,15 @@ window.electronAPI.onSubscriptionReady(async (event, id, keywords, pageUrl, torr
       name,
       "path": await window.electronAPI.pathJoin(settings.subscriptionPath, name),
       "keywords": keywords,
-      "updateTime": new Date().toLocaleString(),
-      pageUrl,
+      "updateTime": "----/--/-- --:--:--",
+      "pageUrl": "https://share.dmhy.org",
     }
 
-    window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']))
+    window.electronAPI.addTorrent(id, torrentUrl, false, true, toRaw(subscriptions[id]['path']), pageUrl)
   }
 })
 
-window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, path, fromSubscription)=>{
+window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, path, fromSubscription, pageUrl)=>{
   if (!downloads[id]) {
     downloads[id] = {
       name,
@@ -78,6 +75,13 @@ window.electronAPI.onTorrentReady((event, id, name, torrent, progress, size, pat
       fromSubscription,
       "isDone": false
     }
+  }
+
+  // If fromSubscription then the download has the same id as its subscription
+  if (fromSubscription) {
+    // Update subscription info. Update here can guarantee torrent is successfully loaded.
+    subscriptions[id]["pageUrl"] = pageUrl
+    subscriptions[id]["updateTime"] = new Date().toLocaleString()
   }
 })
 

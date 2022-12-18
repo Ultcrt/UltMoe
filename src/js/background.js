@@ -381,7 +381,7 @@ async function openWarningDialog(title, body) {
   }
 }
 
-async function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadPath) {
+async function addTorrent(event, id, torrentId, isRestore, fromSubscription, downloadPath, pageUrl) {
   let torrentTarget
 
   if (isRestore) {
@@ -429,7 +429,7 @@ async function addTorrent(event, id, torrentId, isRestore, fromSubscription, dow
     mainWindow.webContents.send(
         "mainWindow:onTorrentReady",
         id, torrent.name, torrent.torrentFile.toString("base64"), torrent.progress,
-        torrent.length, downloadPath, fromSubscription
+        torrent.length, downloadPath, fromSubscription, pageUrl
     )
 
     torrentTransmittingInfo[id] = {}

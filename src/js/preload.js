@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld("electronAPI", {
     openDirectoryPicker: () => ipcRenderer.invoke("mainWindow:openDirectoryPicker"),
     updateSubscription: (id, keywords) => ipcRenderer.send("mainWindow:updateSubscription", id, keywords),
     onSubscriptionReady: (callback) => ipcRenderer.on("mainWindow:onSubscriptionReady", callback),
-    addTorrent: (id, torrentId, isRestore, fromSubscription, downloadPath) => ipcRenderer.send("mainWindow:addTorrent", id, torrentId, isRestore, fromSubscription, downloadPath),
+    addTorrent: (id, torrentId, isRestore, fromSubscription, downloadPath, pageUrl=undefined) => ipcRenderer.send("mainWindow:addTorrent", id, torrentId, isRestore, fromSubscription, downloadPath, pageUrl),
     onTorrentReady: (callback) => ipcRenderer.on("mainWindow:onTorrentReady", callback),
     onTorrentTransmittingInfoUpdated: (callback) => ipcRenderer.on("mainWindow:onTorrentTransmittingInfoUpdated", callback),
     onTorrentDone: (callback) => ipcRenderer.on("mainWindow:onTorrentDone", callback),
