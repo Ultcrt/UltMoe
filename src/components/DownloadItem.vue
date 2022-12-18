@@ -23,7 +23,7 @@
     </div>
     <div class="downloadCell operations">
       <div class="downloadOperations">
-        <PauseAndResumeButton @pause="onPause" @resume="onResume"/>
+        <PauseAndResumeButton @pause="onPause" @resume="onResume" default="resumed"/>
         <DeleteButton @delete="$emit('delete', props.downloadId)"/>
       </div>
     </div>

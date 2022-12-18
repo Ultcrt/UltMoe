@@ -143,9 +143,7 @@ function initClearToday() {
 
 function initDownloads() {
   for (const id in downloads) {
-    if (!downloads[id]["isDone"]) {
-      window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']))
-    }
+    window.electronAPI.addTorrent(id, toRaw(downloads[id]["torrent"]), true, downloads[id]["fromSubscription"], toRaw(downloads[id]['path']))
   }
 }
 

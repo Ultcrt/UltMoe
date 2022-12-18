@@ -1,12 +1,21 @@
 <template>
-  <button @click="onClick" class="pauseButton clickable" :class="state">II</button>
+  <button @click="onClick" class="pauseButton clickable" :class="state">{{ icon }}</button>
 </template>
 
 <script setup>
-import {defineEmits, ref} from "vue";
+import {defineEmits, defineProps, ref} from "vue";
 
-const state = ref("resumed")
+const props = defineProps(['default'])
+const state = ref(props.default)
 const emit = defineEmits(['pause', 'resume'])
+
+let icon = ""
+if (state.value === "resumed") {
+  icon = "II"
+}
+else if(state.value === "paused") {
+  icon  = "▶"
+}
 
 function onClick(event) {
   if (state.value === "resumed") {
