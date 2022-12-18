@@ -446,7 +446,7 @@ async function addTorrent(event, id, torrentId, isRestore, fromSubscription, dow
 
     torrent.on("done", function () {
       mainWindow.webContents.send("mainWindow:onTorrentDone", id)
-      if (fromSubscription) {
+      if (fromSubscription && torrentTransmittingInfo[id]["progress"]) {
         const todayPath = path.join(path.dirname(downloadPath), "今日更新")
         mkdirRecursively(todayPath)
 

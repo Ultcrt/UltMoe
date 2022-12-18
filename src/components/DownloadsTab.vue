@@ -53,6 +53,10 @@ window.electronAPI.onTorrentTransmittingInfoUpdated((event, torrentTransmittingI
       info[id]['timeRemaining']["unit"] = result.unit
 
       info[id]['progress'] = torrentTransmittingInfo[id]["progress"]
+
+      if (downloads[id]["isDone"]) {
+        downloads[id]["isDone"] = false
+      }
     }
   }
 })
